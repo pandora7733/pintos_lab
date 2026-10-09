@@ -12,7 +12,7 @@
 #include <list.h>
 #include <random.h>
 #include <stdio.h>
-#include "threads/test.h"
+#include "threads/tests.h"
 
 /* Maximum number of elements in a linked list that we will
    test. */
@@ -26,8 +26,7 @@ struct value
   };
 
 static void shuffle (struct value[], size_t);
-static bool value_less (const struct list_elem *, const struct list_elem *,
-                        void *);
+static bool value_less (const struct list_elem *, const struct list_elem *, void *);
 static void verify_list_fwd (struct list *, int size);
 static void verify_list_bkwd (struct list *, int size);
 
