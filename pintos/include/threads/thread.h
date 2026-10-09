@@ -89,6 +89,8 @@ struct thread {
 	char name[16];                      /* 이름 (디버깅 용도). */
 	int priority;                       /* 우선순위. */
 
+	int64_t wakeup_tick;                 /* timer_sleep()으로 잠들었을 때 깨어날 시각(틱) */
+
 	/* thread.c와 synch.c가 공유한다. */
 	struct list_elem elem;              /* 리스트 원소. */
 

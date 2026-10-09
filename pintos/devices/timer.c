@@ -20,6 +20,11 @@
 /* OS 부팅 이후 지난 타이머 틱 수. */
 static int64_t ticks;
 
+
+// timer_sleep()으로 잠든 스레드들의 리스트.
+// wakeup_tick이 작은(먼저 깨어날) 스레드가 앞에 오도록 정렬되어 있음
+static struct list sleep_list;
+
 /* 타이머 틱 하나당 루프 횟수.
    timer_calibrate()에서 초기화된다. */
 static unsigned loops_per_tick;
@@ -28,6 +33,8 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
+
+static bool wakeup_tick_less (const struct list_elem *a, const struct list_elem *b, void *aux); // wakeup_tick이 작은 스레드가 앞에 오도록 정렬하기 위한 비교 함수, 근데 왜 bool?
 
 /* 8254 프로그래머블 인터벌 타이머(PIT)가 초당 PIT_FREQ번
    인터럽트를 발생시키도록 설정하고, 해당 인터럽트를
@@ -41,6 +48,8 @@ timer_init (void) {
 	outb (0x43, 0x34);    /* CW: 카운터 0, LSB 다음 MSB, 모드 2, 이진수. */
 	outb (0x40, count & 0xff);
 	outb (0x40, count >> 8);
+
+	list_init(&sleep_list); // sleep_list 초기화
 
 	intr_register_ext (0x20, timer_interrupt, "8254 Timer");
 }
@@ -87,14 +96,52 @@ timer_elapsed (int64_t then) {
 	return timer_ticks () - then;
 }
 
+
+// sleep_list 정렬용 비교 함수. A의 깨어날 시각이 B보다 빠르면 true를 반환한다.
+static bool
+wakeup_tick_less (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	const struct thread *ta = list_entry (a, struct thread, elem);
+	const struct thread *tb = list_entry (b, struct thread, elem);
+
+	return ta->wakeup_tick < tb->wakeup_tick;
+}
+
+
 /* 약 TICKS 타이머 틱 동안 실행을 중단한다. */
+// void
+// timer_sleep (int64_t ticks) {
+// 	int64_t start = timer_ticks ();
+
+// 	ASSERT (intr_get_level () == INTR_ON);
+// 	while (timer_elapsed (start) < ticks)
+// 		thread_yield ();
+// }
+
 void
 timer_sleep (int64_t ticks) {
 	int64_t start = timer_ticks ();
+	struct thread *cur;
+	enum intr_level old_level;
 
 	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
+
+	/* 0 이하의 시간 만큼 잘 필요는 없기 때문에 바로 반환*/
+	if (ticks <= 0)
+		return;
+
+	cur = thread_current ();
+
+	/* sleep_list는 타이머 인터럽트 핸들러도 접근하기 때문에
+	리스트를 수정하고 잠드는 동안 인터럽트를 죽인다. */
+	old_level = intr_disable ();
+
+	cur->wakeup_tick = start + ticks; // 깨어날 시각 설정
+	list_insert_ordered (&sleep_list, &cur->elem, wakeup_tick_less, NULL); // sleep_list에 삽입
+	thread_block (); // 스레드를 잠근다
+
+	// 깨어나면 여기서부터 재실행
+	intr_set_level (old_level);
+
 }
 
 /* 약 MS 밀리초 동안 실행을 중단한다. */
