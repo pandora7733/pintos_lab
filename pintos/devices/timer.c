@@ -169,9 +169,29 @@ timer_print_stats (void) {
 }
 
 /* 타이머 인터럽트 핸들러. */
+// static void
+// timer_interrupt (struct intr_frame *args UNUSED) {
+// 	ticks++;
+// 	thread_tick ();
+// }
+
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
+
+	/* sleep_list는 깨어날 시각 순으로 정렬되어 있어서
+	 맨 앞에서 부터 깨어날 시간이 된 스레드를 모두 깨움 */
+	while (!list_empty (&sleep_list)) {
+		struct thread *t = list_entry (list_front (&sleep_list), struct thread, elem);
+
+		/* 맨 앞 스레드가 아직 깨어날 때가 아니면 뒤쪽도 모두 아님 */
+		if (t->wakeup_tick > ticks)
+		break;
+
+		list_pop_front (&sleep_list); // sleep_list에서 제거
+		thread_unblock (t); // 스레드 깨움
+	}
+
 	thread_tick ();
 }
 
