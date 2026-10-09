@@ -5,41 +5,40 @@
 #include <stdint.h>
 #include <string.h>
 
-/* Auxiliary data for vsnprintf_helper(). */
+/* vsnprintf_helper()를 위한 보조 데이터. */
 struct vsnprintf_aux {
-	char *p;            /* Current output position. */
-	int length;         /* Length of output string. */
-	int max_length;     /* Max length of output string. */
+	char *p;            /* 현재 출력 위치. */
+	int length;         /* 출력 문자열의 길이. */
+	int max_length;     /* 출력 문자열의 최대 길이. */
 };
 
 static void vsnprintf_helper (char, void *);
 
-/* Like vprintf(), except that output is stored into BUFFER,
-   which must have space for BUF_SIZE characters.  Writes at most
-   BUF_SIZE - 1 characters to BUFFER, followed by a null
-   terminator.  BUFFER will always be null-terminated unless
-   BUF_SIZE is zero.  Returns the number of characters that would
-   have been written to BUFFER, not including a null terminator,
-   had there been enough room. */
+/* vprintf()와 같지만 출력을 BUFFER에 저장한다. BUFFER는
+   BUF_SIZE 문자를 담을 공간이 있어야 한다. BUFFER에 최대
+   BUF_SIZE - 1 문자를 쓰고 그 뒤에 널 종료 문자를 쓴다.
+   BUF_SIZE가 0이 아닌 한 BUFFER는 항상 널로 종료된다.
+   공간이 충분했다면 BUFFER에 쓰였을 문자 수(널 종료 문자
+   제외)를 반환한다. */
 int
 vsnprintf (char *buffer, size_t buf_size, const char *format, va_list args) {
-	/* Set up aux data for vsnprintf_helper(). */
+	/* vsnprintf_helper()를 위한 보조 데이터를 설정한다. */
 	struct vsnprintf_aux aux;
 	aux.p = buffer;
 	aux.length = 0;
 	aux.max_length = buf_size > 0 ? buf_size - 1 : 0;
 
-	/* Do most of the work. */
+	/* 대부분의 작업을 수행한다. */
 	__vprintf (format, args, vsnprintf_helper, &aux);
 
-	/* Add null terminator. */
+	/* 널 종료 문자를 추가한다. */
 	if (buf_size > 0)
 		*aux.p = '\0';
 
 	return aux.length;
 }
 
-/* Helper function for vsnprintf(). */
+/* vsnprintf()의 도우미 함수. */
 static void
 vsnprintf_helper (char ch, void *aux_) {
 	struct vsnprintf_aux *aux = aux_;
@@ -48,13 +47,12 @@ vsnprintf_helper (char ch, void *aux_) {
 		*aux->p++ = ch;
 }
 
-/* Like printf(), except that output is stored into BUFFER,
-   which must have space for BUF_SIZE characters.  Writes at most
-   BUF_SIZE - 1 characters to BUFFER, followed by a null
-   terminator.  BUFFER will always be null-terminated unless
-   BUF_SIZE is zero.  Returns the number of characters that would
-   have been written to BUFFER, not including a null terminator,
-   had there been enough room. */
+/* printf()와 같지만 출력을 BUFFER에 저장한다. BUFFER는
+   BUF_SIZE 문자를 담을 공간이 있어야 한다. BUFFER에 최대
+   BUF_SIZE - 1 문자를 쓰고 그 뒤에 널 종료 문자를 쓴다.
+   BUF_SIZE가 0이 아닌 한 BUFFER는 항상 널로 종료된다.
+   공간이 충분했다면 BUFFER에 쓰였을 문자 수(널 종료 문자
+   제외)를 반환한다. */
 int
 snprintf (char *buffer, size_t buf_size, const char *format, ...) {
 	va_list args;
@@ -67,10 +65,10 @@ snprintf (char *buffer, size_t buf_size, const char *format, ...) {
 	return retval;
 }
 
-/* Writes formatted output to the console.
-   In the kernel, the console is both the video display and first
-   serial port.
-   In userspace, the console is file descriptor 1. */
+/* 형식화된 출력을 콘솔에 쓴다.
+   커널에서 콘솔은 비디오 화면과 첫 번째 시리얼 포트
+   둘 다이다.
+   사용자 공간에서 콘솔은 파일 디스크립터 1이다. */
 int
 printf (const char *format, ...) {
 	va_list args;
@@ -83,11 +81,11 @@ printf (const char *format, ...) {
 	return retval;
 }
 
-/* printf() formatting internals. */
+/* printf() 형식화 내부 구현. */
 
-/* A printf() conversion. */
+/* printf() 변환. */
 struct printf_conversion {
-	/* Flags. */
+	/* 플래그. */
 	enum {
 		MINUS = 1 << 0,         /* '-' */
 		PLUS = 1 << 1,          /* '+' */
@@ -97,18 +95,18 @@ struct printf_conversion {
 		GROUP = 1 << 5          /* '\'' */
 	} flags;
 
-	/* Minimum field width. */
+	/* 최소 필드 너비. */
 	int width;
 
-	/* Numeric precision.
-	   -1 indicates no precision was specified. */
+	/* 숫자 정밀도.
+	   -1은 정밀도가 지정되지 않았음을 뜻한다. */
 	int precision;
 
-	/* Type of argument to format. */
+	/* 형식화할 인자의 타입. */
 	enum {
 		CHAR = 1,               /* hh */
 		SHORT = 2,              /* h */
-		INT = 3,                /* (none) */
+		INT = 3,                /* (없음) */
 		INTMAX = 4,             /* j */
 		LONG = 5,               /* l */
 		LONGLONG = 6,           /* ll */
@@ -118,10 +116,10 @@ struct printf_conversion {
 };
 
 struct integer_base {
-	int base;                   /* Base. */
-	const char *digits;         /* Collection of digits. */
-	int x;                      /* `x' character to use, for base 16 only. */
-	int group;                  /* Number of digits to group with ' flag. */
+	int base;                   /* 진법. */
+	const char *digits;         /* 숫자 문자 모음. */
+	int x;                      /* 사용할 `x' 문자, 16진법 전용. */
+	int group;                  /* ' 플래그로 묶을 자릿수. */
 };
 
 static const struct integer_base base_d = {10, "0123456789", 0, 3};
@@ -148,7 +146,7 @@ __vprintf (const char *format, va_list args,
 	for (; *format != '\0'; format++) {
 		struct printf_conversion c;
 
-		/* Literally copy non-conversions to output. */
+		/* 변환이 아닌 부분은 그대로 출력에 복사한다. */
 		if (*format != '%') {
 			output (*format, aux);
 			continue;
@@ -161,15 +159,15 @@ __vprintf (const char *format, va_list args,
 			continue;
 		}
 
-		/* Parse conversion specifiers. */
+		/* 변환 지정자를 파싱한다. */
 		format = parse_conversion (format, &c, &args);
 
-		/* Do conversion. */
+		/* 변환을 수행한다. */
 		switch (*format) {
 			case 'd':
 			case 'i':
 				{
-					/* Signed integer conversions. */
+					/* 부호 있는 정수 변환. */
 					intmax_t value;
 
 					switch (c.type) {
@@ -213,7 +211,7 @@ __vprintf (const char *format, va_list args,
 			case 'x':
 			case 'X':
 				{
-					/* Unsigned integer conversions. */
+					/* 부호 없는 정수 변환. */
 					uintmax_t value;
 					const struct integer_base *b;
 
@@ -263,7 +261,7 @@ __vprintf (const char *format, va_list args,
 
 			case 'c':
 				{
-					/* Treat character as single-character string. */
+					/* 문자를 한 글자짜리 문자열로 취급한다. */
 					char ch = va_arg (args, int);
 					format_string (&ch, 1, &c, output, aux);
 				}
@@ -271,22 +269,22 @@ __vprintf (const char *format, va_list args,
 
 			case 's':
 				{
-					/* String conversion. */
+					/* 문자열 변환. */
 					const char *s = va_arg (args, char *);
 					if (s == NULL)
 						s = "(null)";
 
-					/* Limit string length according to precision.
-Note: if c.precision == -1 then strnlen() will get
-SIZE_MAX for MAXLEN, which is just what we want. */
+					/* 정밀도에 따라 문자열 길이를 제한한다.
+   참고: c.precision == -1이면 strnlen()의 MAXLEN으로
+   SIZE_MAX가 전달되며, 이것이 바로 우리가 원하는 동작이다. */
 					format_string (s, strnlen (s, c.precision), &c, output, aux);
 				}
 				break;
 
 			case 'p':
 				{
-					/* Pointer conversion.
-					   Format pointers as %#x. */
+					/* 포인터 변환.
+					   포인터는 %#x 형식으로 출력한다. */
 					void *p = va_arg (args, void *);
 
 					c.flags = POUND;
@@ -301,8 +299,8 @@ SIZE_MAX for MAXLEN, which is just what we want. */
 			case 'g':
 			case 'G':
 			case 'n':
-				/* We don't support floating-point arithmetic,
-				   and %n can be part of a security hole. */
+				/* 부동소수점 연산은 지원하지 않으며,
+				   %n은 보안 구멍이 될 수 있다. */
 				__printf ("<<no %%%c in kernel>>", output, aux, *format);
 				break;
 
@@ -313,14 +311,14 @@ SIZE_MAX for MAXLEN, which is just what we want. */
 	}
 }
 
-/* Parses conversion option characters starting at FORMAT and
-   initializes C appropriately.  Returns the character in FORMAT
-   that indicates the conversion (e.g. the `d' in `%d').  Uses
- *ARGS for `*' field widths and precisions. */
+/* FORMAT에서 시작하는 변환 옵션 문자들을 파싱하고 C를
+   적절히 초기화한다. 변환을 나타내는 FORMAT의 문자
+   (예: `%d'의 `d')를 반환한다. `*' 필드 너비와 정밀도에는
+   *ARGS를 사용한다. */
 static const char *
 parse_conversion (const char *format, struct printf_conversion *c,
 		va_list *args) {
-	/* Parse flag characters. */
+	/* 플래그 문자를 파싱한다. */
 	c->flags = 0;
 	for (;;) {
 		switch (*format++) {
@@ -353,7 +351,7 @@ not_a_flag:
 	if (c->flags & PLUS)
 		c->flags &= ~SPACE;
 
-	/* Parse field width. */
+	/* 필드 너비를 파싱한다. */
 	c->width = 0;
 	if (*format == '*') {
 		format++;
@@ -367,7 +365,7 @@ not_a_flag:
 		c->flags |= MINUS;
 	}
 
-	/* Parse precision. */
+	/* 정밀도를 파싱한다. */
 	c->precision = -1;
 	if (*format == '.') {
 		format++;
@@ -385,7 +383,7 @@ not_a_flag:
 	if (c->precision >= 0)
 		c->flags &= ~ZERO;
 
-	/* Parse type. */
+	/* 타입을 파싱한다. */
 	c->type = INT;
 	switch (*format++) {
 		case 'h':
@@ -426,28 +424,27 @@ not_a_flag:
 	return format;
 }
 
-/* Performs an integer conversion, writing output to OUTPUT with
-   auxiliary data AUX.  The integer converted has absolute value
-   VALUE.  If IS_SIGNED is true, does a signed conversion with
-   NEGATIVE indicating a negative value; otherwise does an
-   unsigned conversion and ignores NEGATIVE.  The output is done
-   according to the provided base B.  Details of the conversion
-   are in C. */
+/* 정수 변환을 수행하여 보조 데이터 AUX와 함께 OUTPUT에 출력한다.
+   변환할 정수의 절댓값은 VALUE이다. IS_SIGNED가 true이면
+   NEGATIVE로 음수 여부를 나타내는 부호 있는 변환을 하고,
+   그렇지 않으면 부호 없는 변환을 하며 NEGATIVE는 무시한다.
+   출력은 주어진 진법 B에 따른다. 변환의 세부 사항은
+   C에 들어 있다. */
 static void
 format_integer (uintmax_t value, bool is_signed, bool negative,
 		const struct integer_base *b,
 		const struct printf_conversion *c,
 		void (*output) (char, void *), void *aux) {
-	char buf[64], *cp;            /* Buffer and current position. */
-	int x;                        /* `x' character to use or 0 if none. */
-	int sign;                     /* Sign character or 0 if none. */
-	int precision;                /* Rendered precision. */
-	int pad_cnt;                  /* # of pad characters to fill field width. */
-	int digit_cnt;                /* # of digits output so far. */
+	char buf[64], *cp;            /* 버퍼와 현재 위치. */
+	int x;                        /* 사용할 `x' 문자, 없으면 0. */
+	int sign;                     /* 부호 문자, 없으면 0. */
+	int precision;                /* 출력된 정밀도. */
+	int pad_cnt;                  /* 필드 너비를 채울 패딩 문자 수. */
+	int digit_cnt;                /* 지금까지 출력한 숫자 개수. */
 
-	/* Determine sign character, if any.
-	   An unsigned conversion will never have a sign character,
-	   even if one of the flags requests one. */
+	/* 부호 문자가 있다면 결정한다.
+	   부호 없는 변환에는 플래그가 요구하더라도 부호 문자가
+	   절대 붙지 않는다. */
 	sign = 0;
 	if (is_signed) {
 		if (c->flags & PLUS)
@@ -458,14 +455,14 @@ format_integer (uintmax_t value, bool is_signed, bool negative,
 			sign = '-';
 	}
 
-	/* Determine whether to include `0x' or `0X'.
-	   It will only be included with a hexadecimal conversion of a
-	   nonzero value with the # flag. */
+	/* `0x'나 `0X'를 붙일지 결정한다.
+	   # 플래그와 함께 0이 아닌 값을 16진수로 변환할 때만
+	   붙는다. */
 	x = (c->flags & POUND) && value ? b->x : 0;
 
-	/* Accumulate digits into buffer.
-	   This algorithm produces digits in reverse order, so later we
-	   will output the buffer's content in reverse. */
+	/* 숫자들을 버퍼에 누적한다.
+	   이 알고리즘은 숫자를 역순으로 만들어 내므로, 나중에
+	   버퍼 내용을 거꾸로 출력한다. */
 	cp = buf;
 	digit_cnt = 0;
 	while (value > 0) {
@@ -476,23 +473,23 @@ format_integer (uintmax_t value, bool is_signed, bool negative,
 		digit_cnt++;
 	}
 
-	/* Append enough zeros to match precision.
-	   If requested precision is 0, then a value of zero is
-	   rendered as a null string, otherwise as "0".
-	   If the # flag is used with base 8, the result must always
-	   begin with a zero. */
+	/* 정밀도에 맞도록 0을 충분히 덧붙인다.
+	   요청된 정밀도가 0이면 값 0은 빈 문자열로,
+	   그렇지 않으면 "0"으로 출력된다.
+	   8진법에 # 플래그를 사용하면 결과는 항상 0으로
+	   시작해야 한다. */
 	precision = c->precision < 0 ? 1 : c->precision;
 	while (cp - buf < precision && cp < buf + sizeof buf - 1)
 		*cp++ = '0';
 	if ((c->flags & POUND) && b->base == 8 && (cp == buf || cp[-1] != '0'))
 		*cp++ = '0';
 
-	/* Calculate number of pad characters to fill field width. */
+	/* 필드 너비를 채울 패딩 문자 수를 계산한다. */
 	pad_cnt = c->width - (cp - buf) - (x ? 2 : 0) - (sign != 0);
 	if (pad_cnt < 0)
 		pad_cnt = 0;
 
-	/* Do output. */
+	/* 출력을 수행한다. */
 	if ((c->flags & (MINUS | ZERO)) == 0)
 		output_dup (' ', pad_cnt, output, aux);
 	if (sign)
@@ -509,16 +506,16 @@ format_integer (uintmax_t value, bool is_signed, bool negative,
 		output_dup (' ', pad_cnt, output, aux);
 }
 
-/* Writes CH to OUTPUT with auxiliary data AUX, CNT times. */
+/* 보조 데이터 AUX와 함께 CH를 OUTPUT에 CNT번 쓴다. */
 static void
 output_dup (char ch, size_t cnt, void (*output) (char, void *), void *aux) {
 	while (cnt-- > 0)
 		output (ch, aux);
 }
 
-/* Formats the LENGTH characters starting at STRING according to
-   the conversion specified in C.  Writes output to OUTPUT with
-   auxiliary data AUX. */
+/* STRING에서 시작하는 LENGTH개 문자를 C에 지정된 변환에 따라
+   형식화한다. 보조 데이터 AUX와 함께 OUTPUT에
+   출력한다. */
 static void
 format_string (const char *string, int length,
 		struct printf_conversion *c,
@@ -532,8 +529,8 @@ format_string (const char *string, int length,
 		output_dup (' ', c->width - length, output, aux);
 }
 
-/* Wrapper for __vprintf() that converts varargs into a
-   va_list. */
+/* 가변 인자를 va_list로 변환하는 __vprintf()의
+   래퍼. */
 void
 __printf (const char *format,
 		void (*output) (char, void *), void *aux, ...) {
@@ -544,28 +541,28 @@ __printf (const char *format,
 	va_end (args);
 }
 
-/* Dumps the SIZE bytes in BUF to the console as hex bytes
-   arranged 16 per line.  Numeric offsets are also included,
-   starting at OFS for the first byte in BUF.  If ASCII is true
-   then the corresponding ASCII characters are also rendered
-   alongside. */
+/* BUF의 SIZE 바이트를 한 줄에 16개씩 16진수 바이트로
+   콘솔에 덤프한다. 숫자 오프셋도 함께 출력하며, BUF의 첫
+   바이트의 오프셋은 OFS부터 시작한다. ASCII가 true이면
+   대응하는 ASCII 문자도 옆에 함께
+   출력한다. */
 void
 hex_dump (uintptr_t ofs, const void *buf_, size_t size, bool ascii) {
 	const uint8_t *buf = buf_;
-	const size_t per_line = 16; /* Maximum bytes per line. */
+	const size_t per_line = 16; /* 한 줄당 최대 바이트 수. */
 
 	while (size > 0) {
 		size_t start, end, n;
 		size_t i;
 
-		/* Number of bytes on this line. */
+		/* 이 줄의 바이트 수. */
 		start = ofs % per_line;
 		end = per_line;
 		if (end - start > size)
 			end = start + size;
 		n = end - start;
 
-		/* Print line. */
+		/* 한 줄을 출력한다. */
 		printf ("%016llx  ", (uintmax_t) ROUND_DOWN (ofs, per_line));
 		for (i = 0; i < start; i++)
 			printf ("   ");

@@ -1,7 +1,7 @@
-/* Generates about 1 MB of random data that is then divided into
-   16 chunks.  A separate subprocess sorts each chunk; the
-   subprocesses run in parallel.  Then we merge the chunks and
-   verify that the result is what it should be. */
+/* 약 1MB의 무작위 데이터를 생성해 16개의 청크로 나눈다.
+   별도의 하위 프로세스가 각 청크를 정렬하며, 하위 프로세스들은
+   병렬로 실행된다. 그런 다음 청크들을 병합하고 결과가 올바른지
+   검증한다. */
 
 #include "tests/vm/parallel-merge.h"
 #include <stdio.h>
@@ -11,14 +11,14 @@
 #include "tests/main.h"
 
 #define CHUNK_SIZE (128 * 1024)
-#define CHUNK_CNT 8                             /* Number of chunks. */
-#define DATA_SIZE (CHUNK_CNT * CHUNK_SIZE)      /* Buffer size. */
+#define CHUNK_CNT 8                             /* 청크 수. */
+#define DATA_SIZE (CHUNK_CNT * CHUNK_SIZE)      /* 버퍼 크기. */
 
 unsigned char buf1[DATA_SIZE], buf2[DATA_SIZE];
 size_t histogram[256];
 
-/* Initialize buf1 with random data,
-   then count the number of instances of each value within it. */
+/* buf1을 무작위 데이터로 초기화한 뒤,
+   그 안에서 각 값이 몇 번 나타나는지 센다. */
 static void
 init (void)
 {
@@ -33,8 +33,8 @@ init (void)
     histogram[buf1[i]]++;
 }
 
-/* Sort each chunk of buf1 using SUBPROCESS,
-   which is expected to return EXIT_STATUS. */
+/* SUBPROCESS를 사용해 buf1의 각 청크를 정렬한다.
+   SUBPROCESS는 EXIT_STATUS를 반환할 것으로 기대된다. */
 static void
 sort_chunks (const char *subprocess, int exit_status)
 {
@@ -49,7 +49,7 @@ sort_chunks (const char *subprocess, int exit_status)
 
       msg ("sort chunk %zu", i);
 
-      /* Write this chunk to a file. */
+      /* 이 청크를 파일에 쓴다. */
       snprintf (fn, sizeof fn, "buf%zu", i);
       create (fn, CHUNK_SIZE);
       quiet = true;
@@ -57,7 +57,7 @@ sort_chunks (const char *subprocess, int exit_status)
       write (handle, buf1 + CHUNK_SIZE * i, CHUNK_SIZE);
       close (handle);
 
-      /* Sort with subprocess. */
+      /* 하위 프로세스로 정렬한다. */
       snprintf (cmd, sizeof cmd, "%s %s", subprocess, fn);
       children[i] = fork (subprocess);
       if (children[i] == 0)
@@ -72,7 +72,7 @@ sort_chunks (const char *subprocess, int exit_status)
 
       CHECK (wait (children[i]) == exit_status, "wait for child %zu", i);
 
-      /* Read chunk back from file. */
+      /* 파일에서 청크를 다시 읽는다. */
       quiet = true;
       snprintf (fn, sizeof fn, "buf%zu", i);
       CHECK ((handle = open (fn)) > 1, "open \"%s\"", fn);
@@ -82,7 +82,7 @@ sort_chunks (const char *subprocess, int exit_status)
     }
 }
 
-/* Merge the sorted chunks in buf1 into a fully sorted buf2. */
+/* buf1의 정렬된 청크들을 병합하여 완전히 정렬된 buf2를 만든다. */
 static void
 merge (void)
 {
@@ -93,26 +93,26 @@ merge (void)
 
   msg ("merge");
 
-  /* Initialize merge pointers. */
+  /* 병합 포인터를 초기화한다. */
   mp_left = CHUNK_CNT;
   for (i = 0; i < CHUNK_CNT; i++)
     mp[i] = buf1 + CHUNK_SIZE * i;
 
-  /* Merge. */
+  /* 병합. */
   op = buf2;
   while (mp_left > 0)
     {
-      /* Find smallest value. */
+      /* 가장 작은 값을 찾는다. */
       size_t min = 0;
       for (i = 1; i < mp_left; i++)
         if (*mp[i] < *mp[min])
           min = i;
 
-      /* Append value to buf2. */
+      /* buf2에 값을 추가한다. */
       *op++ = *mp[min];
 
-      /* Advance merge pointer.
-         Delete this chunk from the set if it's emptied. */
+      /* 병합 포인터를 전진시킨다.
+         이 청크가 비었으면 집합에서 삭제한다. */
       if ((++mp[min] - buf1) % CHUNK_SIZE == 0)
         mp[min] = mp[--mp_left];
     }

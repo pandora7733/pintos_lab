@@ -1,5 +1,5 @@
-/* Creates directories /0/0/0 through /3/2/2 and files in the
-   leaf directories, then removes them. */
+/* 디렉터리 /0/0/0부터 /3/2/2까지와 리프 디렉터리의 파일들을
+   만든 뒤, 그것들을 제거한다. */
 
 #include <stdarg.h>
 #include <stdio.h>

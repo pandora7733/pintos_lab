@@ -1,7 +1,7 @@
-/* Prints the command-line arguments.
-   This program is used for all of the args-* tests.  Grading is
-   done differently for each of the args-* tests based on the
-   output. */
+/* 커맨드 라인 인자를 출력한다.
+   이 프로그램은 모든 args-* 테스트에 사용된다. 채점은 출력을
+   바탕으로 각 args-* 테스트마다 다르게
+   이루어진다. */
 
 #include "tests/lib.h"
 

@@ -1,4 +1,4 @@
-/* Try reading a file in the most normal way. */
+/* 가장 일반적인 방법으로 파일을 읽어 본다. */
 
 #include "tests/userprog/sample.inc"
 #include "tests/lib.h"

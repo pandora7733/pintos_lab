@@ -1,6 +1,6 @@
-/* Tries to open the same file twice,
-   which must succeed and must return a different file descriptor
-   in each case. */
+/* 같은 파일을 두 번 열려고 시도한다.
+   이는 성공해야 하며, 각각 다른 파일 디스크립터를
+   반환해야 한다. */
 
 #include <syscall.h>
 #include "tests/lib.h"

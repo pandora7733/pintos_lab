@@ -1,13 +1,13 @@
-/* Low-priority main thread L acquires lock A.  Medium-priority
-   thread M then acquires lock B then blocks on acquiring lock A.
-   High-priority thread H then blocks on acquiring lock B.  Thus,
-   thread H donates its priority to M, which in turn donates it
-   to thread L.
-   
-   Based on a test originally submitted for Stanford's CS 140 in
-   winter 1999 by Matt Franklin <startled@leland.stanford.edu>,
-   Greg Hutchins <gmh@leland.stanford.edu>, Yu Ping Hu
-   <yph@cs.stanford.edu>.  Modified by arens. */
+/* 낮은 우선순위의 메인 스레드 L이 락 A를 획득한다. 중간
+   우선순위의 스레드 M이 락 B를 획득한 뒤 락 A를 획득하려다
+   블록된다. 높은 우선순위의 스레드 H는 락 B를 획득하려다
+   블록된다. 따라서 스레드 H는 M에게 우선순위를 기부하고,
+   M은 다시 그것을 스레드 L에게 기부한다.
+
+   1999년 겨울 Stanford CS 140에 Matt Franklin
+   <startled@leland.stanford.edu>, Greg Hutchins
+   <gmh@leland.stanford.edu>, Yu Ping Hu <yph@cs.stanford.edu>가
+   처음 제출한 테스트를 바탕으로 한다. arens가 수정했다. */
 
 #include <stdio.h>
 #include "tests/threads/tests.h"
@@ -30,10 +30,10 @@ test_priority_donate_nest (void)
   struct lock a, b;
   struct locks locks;
 
-  /* This test does not work with the MLFQS. */
+  /* 이 테스트는 MLFQS에서는 동작하지 않는다. */
   ASSERT (!thread_mlfqs);
 
-  /* Make sure our priority is the default. */
+  /* 우리의 우선순위가 기본값인지 확인한다. */
   ASSERT (thread_get_priority () == PRI_DEFAULT);
 
   lock_init (&a);

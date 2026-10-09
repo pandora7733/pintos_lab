@@ -1,5 +1,5 @@
-/* Verifies that a deleted file may still be written to and read
-   from. */
+/* 삭제된 파일에도 여전히 쓰고 읽을 수 있는지
+   검증한다. */
 
 #include <random.h>
 #include <string.h>

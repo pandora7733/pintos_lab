@@ -1,11 +1,10 @@
-/* Child process for syn-rw.
-   Reads from a file created by our parent process, which is
-   growing it.  We loop until we've read the whole file
-   successfully.  Many iterations through the loop will return 0
-   bytes, because the file has not grown in the meantime.  That
-   is, we are "busy waiting" for the file to grow.
-   (This test could be improved by adding a "yield" system call
-   and calling yield whenever we receive a 0-byte read.) */
+/* syn-rw의 자식 프로세스.
+   부모 프로세스가 만들어 계속 늘리고 있는 파일에서 읽는다.
+   파일 전체를 성공적으로 읽을 때까지 반복한다. 그동안 파일이
+   늘어나지 않았기 때문에 루프의 많은 반복에서 0바이트가
+   반환된다. 즉, 파일이 늘어나기를 "바쁜 대기"하는 것이다.
+   (이 테스트는 "yield" 시스템 콜을 추가하고 0바이트를 읽을
+   때마다 yield를 호출하도록 하면 개선할 수 있다.) */
 
 #include <random.h>
 #include <stdlib.h>

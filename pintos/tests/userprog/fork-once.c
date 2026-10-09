@@ -1,4 +1,4 @@
-/* Forks and waits for a single child process. */
+/* 자식 프로세스 하나를 fork하고 기다린다. */
 
 #include <syscall.h>
 #include "tests/lib.h"

@@ -1,4 +1,4 @@
-/* Verifies that mapping over the kernel is disallowed. */
+/* 커널 영역 위에 매핑하는 것이 허용되지 않는지 검증한다. */
 
 #include <stdint.h>
 #include <syscall.h>

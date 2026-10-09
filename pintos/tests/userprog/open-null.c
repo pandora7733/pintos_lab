@@ -1,5 +1,5 @@
-/* Tries to open a file with the null pointer as its name.
-   The process must be terminated with exit code -1. */
+/* 널 포인터를 이름으로 파일을 열려고 시도한다.
+   프로세스는 종료 코드 -1로 종료되어야 한다. */
 
 #include <stddef.h>
 #include <syscall.h>

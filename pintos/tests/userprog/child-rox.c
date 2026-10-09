@@ -1,8 +1,8 @@
-/* Child process run by rox-child and rox-multichild tests.
-   Opens and tries to write to its own executable, verifying that
-   that is disallowed.
-   Then recursively executes itself to the depth indicated by the
-   first command-line argument. */
+/* rox-child와 rox-multichild 테스트가 실행하는 자식 프로세스.
+   자신의 실행 파일을 열어 쓰기를 시도하고, 그것이 허용되지
+   않는지 검증한다.
+   그런 다음 첫 번째 커맨드 라인 인자가 나타내는 깊이까지
+   자기 자신을 재귀적으로 실행한다. */
 
 #include <ctype.h>
 #include <stdio.h>

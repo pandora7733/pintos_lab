@@ -1,5 +1,5 @@
-/* Executes itself recursively to the depth indicated by the
-   first command-line argument. */
+/* 첫 번째 커맨드 라인 인자가 나타내는 깊이까지 자기 자신을
+   재귀적으로 실행한다. */
 
 #include <debug.h>
 #include <stdlib.h>
