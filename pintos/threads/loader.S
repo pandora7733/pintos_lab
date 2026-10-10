@@ -1,6 +1,6 @@
-/* This file is derived from source code used in MIT's 6.828
-   course.  The original copyright notice is reproduced in full
-   below. */
+/* 이 파일은 MIT 6.828 강의에서 사용된 소스 코드에서
+   파생되었다. 원본 저작권 고지는 아래에 그대로
+   수록되어 있다. */
 
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
@@ -40,17 +40,16 @@
 
 #include "threads/loader.h"
 	
-#### Kernel loader.
+#### 커널 로더.
 
-#### This code should be stored in the first sector of the hard disk.
-#### When the BIOS runs, it loads this code at physical address
-#### 0x7c00-0x7e00 (512 bytes).  Then it jumps to the beginning of it,
-#### in real mode.  This code switches into protected mode (32-bit
-#### mode) so that all of memory can accessed, loads the kernel into
-#### memory, and jumps to the first byte of the kernel, where start.S
-#### is linked.
+#### 이 코드는 하드 디스크의 첫 번째 섹터에 저장되어야 한다.
+#### BIOS가 실행되면 이 코드를 물리 주소 0x7c00-0x7e00(512바이트)에
+#### 로드한다. 그런 다음 리얼 모드에서 이 코드의 시작 부분으로
+#### 점프한다. 이 코드는 모든 메모리에 접근할 수 있도록 보호 모드
+#### (32비트 모드)로 전환하고, 커널을 메모리에 로드한 뒤, start.S가
+#### 링크되어 있는 커널의 첫 바이트로 점프한다.
 	
-/* Flags in control register 0. */
+/* 제어 레지스터 0의 플래그. */
 #define CR0_PE 0x00000001      /* Protection Enable. */
 #define CR0_EM 0x00000004      /* (Floating-point) Emulation. */
 #define CR0_PG 0x80000000      /* Paging. */
@@ -60,64 +59,64 @@
 .globl start
 start:
 	
-# Code runs in real mode, which is a 16-bit segment.
+# 코드는 16비트 세그먼트인 리얼 모드에서 실행된다.
 	.code16
 
-# Disable interrupts, because we will not be prepared to handle them
-# in protected mode until much later.
-# String instructions go upward (e.g. for "rep stosl" below).
+# 인터럽트를 비활성화한다. 보호 모드에서 인터럽트를 처리할 준비는
+# 훨씬 나중에야 되기 때문이다.
+# 문자열 명령어가 위쪽(증가 방향)으로 진행하도록 한다 (예: 아래의 "rep stosl").
 
 	cli
 	cld
 
-# Set up data segments.
+# 데이터 세그먼트를 설정한다.
 
 	subw %ax, %ax
 	movw %ax, %es
 	movw %ax, %ds
 
-# Set up stack segment.
-# Stack grows downward starting from us.
-# We don't ever use the stack, but we call into the BIOS,
-# which might.
+# 스택 세그먼트를 설정한다.
+# 스택은 우리 위치에서 시작해 아래쪽으로 자란다.
+# 우리가 스택을 직접 쓰지는 않지만, 호출하는 BIOS는
+# 사용할 수도 있다.
 
 	movw %ax, %ss
 	movw $0x7c00, %sp
 	
-#### Enable A20.  Address line 20 is tied to low when the machine
-#### boots, which prevents addressing memory about 1 MB.  This code
-#### fixes it.
+#### A20을 활성화한다. 머신이 부팅될 때 주소 라인 20은 low로 고정되어
+#### 있어서 1MB 이상의 메모리를 주소 지정할 수 없다. 이 코드가
+#### 그 문제를 해결한다.
 	
-# Poll status register while busy.
+# 바쁜 동안 상태 레지스터를 폴링한다.
 
 1:	inb $0x64, %al
 	testb $0x2, %al
 	jnz 1b
 
-# Send command for writing output port.
+# 출력 포트 쓰기 명령을 보낸다.
 
 	movb $0xd1, %al
 	outb %al, $0x64
 
-# Poll status register while busy.
+# 바쁜 동안 상태 레지스터를 폴링한다.
 
 1:	inb $0x64, %al
 	testb $0x2, %al
 	jnz 1b
 
-# Enable A20 line.
+# A20 라인을 활성화한다.
 
 	movb $0xdf, %al
 	outb %al, $0x60
 
 
-#### Get memory size, via interrupt 15h function e820h. Now our pintos
-#### runs on x86_64, "Get Extended Memory Size" operation is not sufficient
-#### for our purpose.
-	mov $0xe820, %eax  # command
-	mov $(E820_MAP4), %edi  # dst
+#### 인터럽트 15h의 e820h 기능으로 메모리 크기를 얻는다. 이제 pintos는
+#### x86_64에서 실행되므로, "Get Extended Memory Size" 연산으로는
+#### 우리 목적에 충분하지 않다.
+	mov $0xe820, %eax  # 명령
+	mov $(E820_MAP4), %edi  # 목적지
 	xor %ebx, %ebx
-	mov $0x534d4150, %edx # magic
+	mov $0x534d4150, %edx # 매직
 	mov $24, %ecx
 	int $0x15
 	cmp %eax, %edx
@@ -142,42 +141,42 @@ e820_parse_done:
 	movl %ebp, MULTIBOOT_MMAP_LEN
 	movl $(E820_MAP), MULTIBOOT_MMAP_ADDR # e820
 
-#### Switch to protected mode.
+#### 보호 모드로 전환한다.
 
-# Note that interrupts are still off.
+# 인터럽트는 여전히 꺼져 있음에 유의하라.
 
-# Point the GDTR to our GDT.  Protected mode requires a GDT.
-# We need a data32 prefix to ensure that all 32 bits of the GDT
-# descriptor are loaded (default is to load only 24 bits).
+# GDTR이 우리의 GDT를 가리키게 한다. 보호 모드에는 GDT가 필요하다.
+# GDT 디스크립터의 32비트가 모두 로드되도록 data32 접두어가
+# 필요하다 (기본값은 24비트만 로드한다).
 
 	data32 lgdt gdtdesc
 
-# Then we turn on the following bits in CR0:
-#    PE (Protect Enable): this turns on protected mode.
-#    PG (Paging): turns on paging.
-#    WP (Write Protect): if unset, ring 0 code ignores
-#       write-protect bits in page tables (!).
-#    EM (Emulation): forces floating-point instructions to trap.
-#       We don't support floating point. 
+# 그런 다음 CR0의 다음 비트들을 켠다:
+#    PE (Protect Enable): 보호 모드를 켠다.
+#    PG (Paging): 페이징을 켠다.
+#    WP (Write Protect): 설정하지 않으면 링 0 코드는 페이지 테이블의
+#       쓰기 보호 비트를 무시한다 (!).
+#    EM (Emulation): 부동소수점 명령어가 트랩을 일으키도록 강제한다.
+#       우리는 부동소수점을 지원하지 않는다.
 	
 	movl %cr0, %eax
 	orl $CR0_PE, %eax
 	movl %eax, %cr0
 	
-# We're now in protected mode in a 16-bit segment.  The CPU still has
-# the real-mode code segment cached in %cs's segment descriptor.  We
-# need to reload %cs, and the easiest way is to use a far jump.
-# Because we're not in a 32-bit segment the data32 prefix is needed to
-# jump to a 32-bit offset.
+# 이제 16비트 세그먼트의 보호 모드에 있다. CPU는 여전히 리얼 모드
+# 코드 세그먼트를 %cs의 세그먼트 디스크립터에 캐시하고 있다.
+# %cs를 다시 로드해야 하는데, 가장 쉬운 방법은 far jump를 쓰는 것이다.
+# 32비트 세그먼트가 아니므로 32비트 오프셋으로 점프하려면
+# data32 접두어가 필요하다.
 
 	data32 ljmp $SEL_KCSEG, $protcseg
 
-# We're now in protected mode in a 32-bit segment.
+# 이제 32비트 세그먼트의 보호 모드에 있다.
 
 	.code32
 
-# Reload all the other segment registers and the stack pointer to
-# point into our new GDT.
+# 나머지 모든 세그먼트 레지스터와 스택 포인터가 새 GDT를
+# 가리키도록 다시 로드한다.
 
 protcseg:
 	movw $SEL_KDSEG, %ax
@@ -188,17 +187,17 @@ protcseg:
 	movw %ax, %ss
 	movl $LOADER_PHYS_BASE + 0x30000, %esp
 
-#### Load kernel starting at physical address LOADER_PHYS_BASE by
-#### frobbing the IDE controller directly.
+#### IDE 컨트롤러를 직접 조작하여 물리 주소 LOADER_PHYS_BASE부터
+#### 커널을 로드한다.
 
 	movl $1, %ebx
 	movl $LOADER_PHYS_BASE, %edi
 
-# Disable interrupt delivery by IDE controller, because we will be
-# polling for data.
-# (If we don't do this, Bochs 2.2.6 will never deliver any IDE
-# interrupt to us later after we reset the interrupt controller during
-# boot, even if we also reset the IDE controller.)
+# 데이터를 폴링할 것이므로 IDE 컨트롤러의 인터럽트 전달을
+# 비활성화한다.
+# (이렇게 하지 않으면, 부팅 중에 인터럽트 컨트롤러를 리셋한 뒤에는
+# IDE 컨트롤러도 리셋하더라도 Bochs 2.2.6이 이후 IDE 인터럽트를
+# 전혀 전달하지 않는다.)
 
 	movw $0x3f6, %dx
 	movb $0x02, %al
@@ -206,27 +205,27 @@ protcseg:
 	
 read_sector:
 
-# Poll status register while controller busy.
+# 컨트롤러가 바쁜 동안 상태 레지스터를 폴링한다.
 
 	movl $0x1f7, %edx
 1:	inb %dx, %al
 	testb $0x80, %al
 	jnz 1b
 
-# Read a single sector.
+# 섹터 하나를 읽는다.
 
 	movl $0x1f2, %edx
 	movb $1, %al
 	outb %al, %dx
 
-# Sector number to write in low 28 bits.
-# LBA mode, device 0 in top 4 bits.
+# 하위 28비트에 쓸 섹터 번호.
+# 상위 4비트에 LBA 모드, 장치 0.
 
 	movl %ebx, %eax
 	andl $0x0fffffff, %eax
 	orl $0xe0000000, %eax
 
-# Dump %eax to ports 0x1f3...0x1f6.
+# %eax를 포트 0x1f3...0x1f6에 쓴다.
 
 	movl $4, %ecx
 1:	incw %dx
@@ -234,37 +233,37 @@ read_sector:
 	shrl $8, %eax
 	loop 1b
 
-# READ command to command register.
+# 명령 레지스터에 READ 명령을 쓴다.
 
 	incw %dx
 	movb $0x20, %al
 	outb %al, %dx
 
-# Poll status register while controller busy.
+# 컨트롤러가 바쁜 동안 상태 레지스터를 폴링한다.
 
 1:	inb %dx, %al
 	testb $0x80, %al
 	jnz 1b
 
-# Poll status register until data ready.
+# 데이터가 준비될 때까지 상태 레지스터를 폴링한다.
 
 1:	inb %dx, %al
 	testb $0x08, %al
 	jz 1b
 
-# Transfer sector.
+# 섹터를 전송한다.
 
 	movl $256, %ecx
 	movl $0x1f0, %edx
 	rep insw
 
-# Next sector.
+# 다음 섹터.
 
 	incl %ebx
 	cmpl $KERNEL_LOAD_PAGES*8 + 1, %ebx
 	jnz read_sector
 
-#### Jump to kernel entry point.
+#### 커널 진입점으로 점프한다.
 	movl $LOADER_PHYS_BASE, %eax
 	call *%eax
 	jmp panic
@@ -272,24 +271,24 @@ read_sector:
 #### GDT
 
 gdt:
-	.quad 0x0000000000000000	# null seg
-	.quad 0x00cf9a000000ffff	# code seg
-	.quad 0x00cf92000000ffff  # data seg
+	.quad 0x0000000000000000	# 널 세그먼트
+	.quad 0x00cf9a000000ffff	# 코드 세그먼트
+	.quad 0x00cf92000000ffff  # 데이터 세그먼트
 	
 gdtdesc:
 	.word	0x17			# sizeof (gdt) - 1
 	.long	gdt
 
-#### Fatal error.
-#### Print panic_message (with help from the BIOS) and spin.
+#### 치명적 오류.
+#### (BIOS의 도움을 받아) panic_message를 출력하고 무한 루프를 돈다.
 
-panic:  .code16			# We only panic in real mode.
+panic:  .code16			# 패닉은 리얼 모드에서만 일어난다.
 	movw $panic_message, %si
 	movb $0xe, %ah
 	subb %bh, %bh
 1:	lodsb
 	test %al, %al
-2:	jz 2b			# Spin.
+2:	jz 2b			# 무한 루프.
 	int $0x10
 	jmp 1b
 
@@ -297,9 +296,9 @@ panic_message:
 	.ascii "Panic!"
 	.byte 0
 
-#### Command-line arguments and their count.
-#### This is written by the `pintos' utility and read by the kernel.
-#### The loader itself does not do anything with the command line.
+#### 커맨드 라인 인자와 그 개수.
+#### `pintos' 유틸리티가 기록하고 커널이 읽는다.
+#### 로더 자체는 커맨드 라인으로 아무것도 하지 않는다.
 	.org LOADER_ARG_CNT - LOADER_BASE
 arg_cnt:
 	.long 0
@@ -307,7 +306,7 @@ arg_cnt:
 args:
 	.fill 0x80, 1, 0
 
-#### Boot-sector signature.
-#### The BIOS checks that this is set properly.
+#### 부트 섹터 시그니처.
+#### BIOS는 이 값이 올바르게 설정되어 있는지 확인한다.
 	.org LOADER_SIG - LOADER_BASE
 	.word 0xaa55

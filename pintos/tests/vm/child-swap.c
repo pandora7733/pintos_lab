@@ -1,5 +1,5 @@
-/* Each thread will read 5MB of anonymous pages
- * Lastly, frees the allocated memory. 
+/* 각 스레드는 5MB의 익명 페이지를 읽는다.
+ * 마지막으로 할당된 메모리를 해제한다.
  */
 
 #include <string.h>

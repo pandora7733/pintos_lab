@@ -1,5 +1,5 @@
-/* Maps and unmaps a file and verifies that the mapped region is
-   inaccessible afterward. */
+/* 파일을 매핑했다가 해제한 뒤, 매핑되었던 영역에 더 이상
+   접근할 수 없는지 검증한다. */
 
 #include <syscall.h>
 #include "tests/vm/sample.inc"

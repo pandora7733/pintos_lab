@@ -1,8 +1,8 @@
 #include <string.h>
 #include <debug.h>
 
-/* Copies SIZE bytes from SRC to DST, which must not overlap.
-   Returns DST. */
+/* SRC에서 DST로 SIZE 바이트를 복사한다. 두 영역은 겹치면 안 된다.
+   DST를 반환한다. */
 void *
 memcpy (void *dst_, const void *src_, size_t size) {
 	unsigned char *dst = dst_;
@@ -17,8 +17,8 @@ memcpy (void *dst_, const void *src_, size_t size) {
 	return dst_;
 }
 
-/* Copies SIZE bytes from SRC to DST, which are allowed to
-   overlap.  Returns DST. */
+/* SRC에서 DST로 SIZE 바이트를 복사한다. 두 영역은 겹쳐도
+   된다. DST를 반환한다. */
 void *
 memmove (void *dst_, const void *src_, size_t size) {
 	unsigned char *dst = dst_;
@@ -40,10 +40,10 @@ memmove (void *dst_, const void *src_, size_t size) {
 	return dst;
 }
 
-/* Find the first differing byte in the two blocks of SIZE bytes
-   at A and B.  Returns a positive value if the byte in A is
-   greater, a negative value if the byte in B is greater, or zero
-   if blocks A and B are equal. */
+/* A와 B에 있는 SIZE 바이트짜리 두 블록에서 처음으로 다른 바이트를
+   찾는다. A의 바이트가 더 크면 양수, B의 바이트가 더 크면
+   음수, 블록 A와 B가 같으면 0을
+   반환한다. */
 int
 memcmp (const void *a_, const void *b_, size_t size) {
 	const unsigned char *a = a_;
@@ -58,11 +58,10 @@ memcmp (const void *a_, const void *b_, size_t size) {
 	return 0;
 }
 
-/* Finds the first differing characters in strings A and B.
-   Returns a positive value if the character in A (as an unsigned
-   char) is greater, a negative value if the character in B (as
-   an unsigned char) is greater, or zero if strings A and B are
-   equal. */
+/* 문자열 A와 B에서 처음으로 다른 문자를 찾는다.
+   A의 문자가 (unsigned char로서) 더 크면 양수, B의 문자가
+   (unsigned char로서) 더 크면 음수, 문자열 A와 B가 같으면
+   0을 반환한다. */
 int
 strcmp (const char *a_, const char *b_) {
 	const unsigned char *a = (const unsigned char *) a_;
@@ -79,9 +78,9 @@ strcmp (const char *a_, const char *b_) {
 	return *a < *b ? -1 : *a > *b;
 }
 
-/* Returns a pointer to the first occurrence of CH in the first
-   SIZE bytes starting at BLOCK.  Returns a null pointer if CH
-   does not occur in BLOCK. */
+/* BLOCK에서 시작하는 처음 SIZE 바이트 안에서 CH가 처음 나타나는
+   위치의 포인터를 반환한다. BLOCK에 CH가 없으면 널 포인터를
+   반환한다. */
 void *
 memchr (const void *block_, int ch_, size_t size) {
 	const unsigned char *block = block_;
@@ -96,10 +95,10 @@ memchr (const void *block_, int ch_, size_t size) {
 	return NULL;
 }
 
-/* Finds and returns the first occurrence of C in STRING, or a
-   null pointer if C does not appear in STRING.  If C == '\0'
-   then returns a pointer to the null terminator at the end of
-   STRING. */
+/* STRING에서 C가 처음 나타나는 위치를 찾아 반환하며, STRING에
+   C가 없으면 널 포인터를 반환한다. C == '\0'이면
+   STRING 끝의 널 종료 문자에 대한 포인터를
+   반환한다. */
 char *
 strchr (const char *string, int c_) {
 	char c = c_;
@@ -115,8 +114,8 @@ strchr (const char *string, int c_) {
 			string++;
 }
 
-/* Returns the length of the initial substring of STRING that
-   consists of characters that are not in STOP. */
+/* STRING의 앞부분 중 STOP에 없는 문자들로만 이루어진
+   부분 문자열의 길이를 반환한다. */
 size_t
 strcspn (const char *string, const char *stop) {
 	size_t length;
@@ -127,9 +126,9 @@ strcspn (const char *string, const char *stop) {
 	return length;
 }
 
-/* Returns a pointer to the first character in STRING that is
-   also in STOP.  If no character in STRING is in STOP, returns a
-   null pointer. */
+/* STRING에서 STOP에도 있는 첫 번째 문자에 대한 포인터를
+   반환한다. STRING의 어떤 문자도 STOP에 없으면 널 포인터를
+   반환한다. */
 char *
 strpbrk (const char *string, const char *stop) {
 	for (; *string != '\0'; string++)
@@ -138,8 +137,8 @@ strpbrk (const char *string, const char *stop) {
 	return NULL;
 }
 
-/* Returns a pointer to the last occurrence of C in STRING.
-   Returns a null pointer if C does not occur in STRING. */
+/* STRING에서 C가 마지막으로 나타나는 위치의 포인터를 반환한다.
+   STRING에 C가 없으면 널 포인터를 반환한다. */
 char *
 strrchr (const char *string, int c_) {
 	char c = c_;
@@ -151,8 +150,8 @@ strrchr (const char *string, int c_) {
 	return (char *) p;
 }
 
-/* Returns the length of the initial substring of STRING that
-   consists of characters in SKIP. */
+/* STRING의 앞부분 중 SKIP에 있는 문자들로만 이루어진
+   부분 문자열의 길이를 반환한다. */
 size_t
 strspn (const char *string, const char *skip) {
 	size_t length;
@@ -163,9 +162,9 @@ strspn (const char *string, const char *skip) {
 	return length;
 }
 
-/* Returns a pointer to the first occurrence of NEEDLE within
-   HAYSTACK.  Returns a null pointer if NEEDLE does not exist
-   within HAYSTACK. */
+/* HAYSTACK 안에서 NEEDLE이 처음 나타나는 위치의 포인터를
+   반환한다. HAYSTACK 안에 NEEDLE이 없으면 널 포인터를
+   반환한다. */
 char *
 strstr (const char *haystack, const char *needle) {
 	size_t haystack_len = strlen (haystack);
@@ -182,25 +181,24 @@ strstr (const char *haystack, const char *needle) {
 	return NULL;
 }
 
-/* Breaks a string into tokens separated by DELIMITERS.  The
-   first time this function is called, S should be the string to
-   tokenize, and in subsequent calls it must be a null pointer.
-   SAVE_PTR is the address of a `char *' variable used to keep
-   track of the tokenizer's position.  The return value each time
-   is the next token in the string, or a null pointer if no
-   tokens remain.
+/* 문자열을 DELIMITERS로 구분된 토큰들로 나눈다. 이 함수를
+   처음 호출할 때 S는 토큰으로 나눌 문자열이어야 하고,
+   이후 호출에서는 반드시 널 포인터여야 한다.
+   SAVE_PTR은 토크나이저의 위치를 추적하는 데 쓰이는 `char *'
+   변수의 주소이다. 매번 반환값은 문자열의 다음 토큰이며,
+   남은 토큰이 없으면 널 포인터이다.
 
-   This function treats multiple adjacent delimiters as a single
-   delimiter.  The returned tokens will never be length 0.
-   DELIMITERS may change from one call to the next within a
-   single string.
+   이 함수는 인접한 여러 구분자를 하나의 구분자로 취급한다.
+   반환되는 토큰의 길이는 절대 0이 아니다.
+   DELIMITERS는 한 문자열 안에서 호출할 때마다 달라질 수
+   있다.
 
-   strtok_r() modifies the string S, changing delimiters to null
-   bytes.  Thus, S must be a modifiable string.  String literals,
-   in particular, are *not* modifiable in C, even though for
-   backward compatibility they are not `const'.
+   strtok_r()은 문자열 S를 수정하여 구분자를 널 바이트로
+   바꾼다. 따라서 S는 수정 가능한 문자열이어야 한다. 특히
+   문자열 리터럴은 하위 호환성 때문에 `const'가 아니더라도
+   C에서 수정할 수 *없다*.
 
-   Example usage:
+   사용 예:
 
    char s[] = "  String to  tokenize. ";
    char *token, *save_ptr;
@@ -209,11 +207,11 @@ strstr (const char *haystack, const char *needle) {
    token = strtok_r (NULL, " ", &save_ptr))
    printf ("'%s'\n", token);
 
-outputs:
+   출력:
 
-'String'
-'to'
-'tokenize.'
+   'String'
+   'to'
+   'tokenize.'
 */
 char *
 strtok_r (char *s, const char *delimiters, char **save_ptr) {
@@ -222,17 +220,17 @@ strtok_r (char *s, const char *delimiters, char **save_ptr) {
 	ASSERT (delimiters != NULL);
 	ASSERT (save_ptr != NULL);
 
-	/* If S is nonnull, start from it.
-	   If S is null, start from saved position. */
+	/* S가 널이 아니면 S부터 시작한다.
+	   S가 널이면 저장된 위치부터 시작한다. */
 	if (s == NULL)
 		s = *save_ptr;
 	ASSERT (s != NULL);
 
-	/* Skip any DELIMITERS at our current position. */
+	/* 현재 위치에 있는 DELIMITERS를 모두 건너뛴다. */
 	while (strchr (delimiters, *s) != NULL) {
-		/* strchr() will always return nonnull if we're searching
-		   for a null byte, because every string contains a null
-		   byte (at the end). */
+		/* 널 바이트를 찾는 경우 strchr()은 항상 널이 아닌 값을
+		   반환한다. 모든 문자열은 (끝에) 널 바이트를 포함하기
+		   때문이다. */
 		if (*s == '\0') {
 			*save_ptr = s;
 			return NULL;
@@ -241,7 +239,7 @@ strtok_r (char *s, const char *delimiters, char **save_ptr) {
 		s++;
 	}
 
-	/* Skip any non-DELIMITERS up to the end of the string. */
+	/* 문자열 끝까지 DELIMITERS가 아닌 문자들을 건너뛴다. */
 	token = s;
 	while (strchr (delimiters, *s) == NULL)
 		s++;
@@ -253,7 +251,7 @@ strtok_r (char *s, const char *delimiters, char **save_ptr) {
 	return token;
 }
 
-/* Sets the SIZE bytes in DST to VALUE. */
+/* DST의 SIZE 바이트를 VALUE로 설정한다. */
 void *
 memset (void *dst_, int value, size_t size) {
 	unsigned char *dst = dst_;
@@ -266,7 +264,7 @@ memset (void *dst_, int value, size_t size) {
 	return dst_;
 }
 
-/* Returns the length of STRING. */
+/* STRING의 길이를 반환한다. */
 size_t
 strlen (const char *string) {
 	const char *p;
@@ -278,8 +276,8 @@ strlen (const char *string) {
 	return p - string;
 }
 
-/* If STRING is less than MAXLEN characters in length, returns
-   its actual length.  Otherwise, returns MAXLEN. */
+/* STRING의 길이가 MAXLEN 문자보다 짧으면 실제 길이를
+   반환한다. 그렇지 않으면 MAXLEN을 반환한다. */
 size_t
 strnlen (const char *string, size_t maxlen) {
 	size_t length;
@@ -289,15 +287,15 @@ strnlen (const char *string, size_t maxlen) {
 	return length;
 }
 
-/* Copies string SRC to DST.  If SRC is longer than SIZE - 1
-   characters, only SIZE - 1 characters are copied.  A null
-   terminator is always written to DST, unless SIZE is 0.
-   Returns the length of SRC, not including the null terminator.
+/* 문자열 SRC를 DST로 복사한다. SRC가 SIZE - 1 문자보다 길면
+   SIZE - 1 문자만 복사한다. SIZE가 0이 아닌 한 DST에는 항상
+   널 종료 문자가 쓰인다.
+   널 종료 문자를 제외한 SRC의 길이를 반환한다.
 
-   strlcpy() is not in the standard C library, but it is an
-   increasingly popular extension.  See
-http://www.courtesan.com/todd/papers/strlcpy.html for
-information on strlcpy(). */
+   strlcpy()는 표준 C 라이브러리에는 없지만 점점 널리 쓰이는
+   확장이다. strlcpy()에 대한 정보는
+   http://www.courtesan.com/todd/papers/strlcpy.html을
+   참고하라. */
 size_t
 strlcpy (char *dst, const char *src, size_t size) {
 	size_t src_len;
@@ -316,16 +314,16 @@ strlcpy (char *dst, const char *src, size_t size) {
 	return src_len;
 }
 
-/* Concatenates string SRC to DST.  The concatenated string is
-   limited to SIZE - 1 characters.  A null terminator is always
-   written to DST, unless SIZE is 0.  Returns the length that the
-   concatenated string would have assuming that there was
-   sufficient space, not including a null terminator.
+/* 문자열 SRC를 DST 뒤에 이어 붙인다. 이어 붙인 문자열은
+   SIZE - 1 문자로 제한된다. SIZE가 0이 아닌 한 DST에는 항상
+   널 종료 문자가 쓰인다. 공간이 충분하다고 가정했을 때
+   이어 붙인 문자열이 가졌을 길이(널 종료 문자 제외)를
+   반환한다.
 
-   strlcat() is not in the standard C library, but it is an
-   increasingly popular extension.  See
-http://www.courtesan.com/todd/papers/strlcpy.html for
-information on strlcpy(). */
+   strlcat()은 표준 C 라이브러리에는 없지만 점점 널리 쓰이는
+   확장이다. strlcpy()에 대한 정보는
+   http://www.courtesan.com/todd/papers/strlcpy.html을
+   참고하라. */
 size_t
 strlcat (char *dst, const char *src, size_t size) {
 	size_t src_len, dst_len;

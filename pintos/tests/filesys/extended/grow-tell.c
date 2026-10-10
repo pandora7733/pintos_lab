@@ -1,5 +1,5 @@
-/* Checks that growing a file updates the file position
-   correctly. */
+/* 파일을 늘렸을 때 파일 위치가 올바르게 갱신되는지
+   확인한다. */
 
 #include <syscall.h>
 #include "tests/filesys/seq-test.h"

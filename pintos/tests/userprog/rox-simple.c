@@ -1,5 +1,5 @@
-/* Ensure that the executable of a running process cannot be
-   modified. */
+/* 실행 중인 프로세스의 실행 파일은 수정될 수 없는지
+   확인한다. */
 
 #include <syscall.h>
 #include "tests/lib.h"

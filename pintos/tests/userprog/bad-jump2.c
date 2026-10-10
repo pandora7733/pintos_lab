@@ -1,5 +1,5 @@
-/* This program attempts to execute code at a kernel virtual address. 
-   This should terminate the process with a -1 exit code. */
+/* 이 프로그램은 커널 가상 주소의 코드를 실행하려 한다.
+   이 경우 프로세스는 종료 코드 -1로 종료되어야 한다. */
 
 #include "tests/lib.h"
 #include "tests/main.h"

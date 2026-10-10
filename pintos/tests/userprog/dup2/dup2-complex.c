@@ -1,6 +1,6 @@
-/* This is the final boss of Pintos Project 2.
-     
-   Written by Minkyu Jung, Jinyoung Oh <cs330_ta@casys.kaist.ac.kr>
+/* Pintos Project 2의 최종 보스이다.
+
+   작성자: Minkyu Jung, Jinyoung Oh <cs330_ta@casys.kaist.ac.kr>
 */
 
 #include <debug.h>
@@ -78,7 +78,7 @@ main (int argc UNUSED, char *argv[] UNUSED) {
   write (fd4, magic, strlen (magic));
 
   pid_t pid;
-  if (!(pid = fork ("child"))){ // child
+  if (!(pid = fork ("child"))){ // 자식
     msg ("child begin");
     close (fd1);
     close (fd2);
@@ -108,7 +108,7 @@ main (int argc UNUSED, char *argv[] UNUSED) {
     exit (byte_cnt);
   } 
 
-  // parent
+  // 부모
   int cur_pos = wait (pid);
   dup2 (fd5, 1);
   

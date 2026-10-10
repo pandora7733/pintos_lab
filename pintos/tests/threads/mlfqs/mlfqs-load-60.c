@@ -1,9 +1,9 @@
-/* Starts 60 threads that each sleep for 10 seconds, then spin in
-   a tight loop for 60 seconds, and sleep for another 60 seconds.
-   Every 2 seconds after the initial sleep, the main thread
-   prints the load average.
+/* 스레드 60개를 시작한다. 각 스레드는 10초 동안 잠든 뒤,
+   60초 동안 빡빡한 루프를 돌고, 다시 60초 동안 잠든다.
+   처음 잠든 이후 2초마다 메인 스레드가 load average를
+   출력한다.
 
-   The expected output is this (some margin of error is allowed):
+   예상 출력은 다음과 같다(약간의 오차는 허용된다):
 
    After 0 seconds, load average=1.00.
    After 2 seconds, load average=2.95.

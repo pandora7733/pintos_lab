@@ -1,5 +1,5 @@
-/* Grows two files in parallel and checks that their contents are
-   correct. */
+/* 두 파일을 병렬로 늘리고 그 내용이 올바른지
+   확인한다. */
 
 #include <random.h>
 #include <syscall.h>

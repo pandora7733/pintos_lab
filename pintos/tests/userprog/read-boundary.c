@@ -1,5 +1,5 @@
-/* Reads data spanning two pages in virtual address space,
-   which must succeed. */
+/* 가상 주소 공간에서 두 페이지에 걸쳐 있는 데이터를 읽는다.
+   이는 반드시 성공해야 한다. */
 
 #include <string.h>
 #include <syscall.h>

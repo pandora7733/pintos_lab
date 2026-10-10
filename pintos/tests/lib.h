@@ -12,20 +12,20 @@ extern bool quiet;
 void msg (const char *, ...) PRINTF_FORMAT (1, 2);
 void fail (const char *, ...) PRINTF_FORMAT (1, 2) NO_RETURN;
 
-/* Takes an expression to test for SUCCESS and a message, which
-   may include printf-style arguments.  Logs the message, then
-   tests the expression.  If it is zero, indicating failure,
-   emits the message as a failure.
+/* SUCCESS인지 검사할 식과 메시지를 받는다. 메시지에는
+   printf 스타일의 인자를 포함할 수 있다. 메시지를 기록한 뒤
+   식을 검사한다. 식이 0이면(실패를 의미) 메시지를
+   실패로 출력한다.
 
-   Somewhat tricky to use:
+   사용하기 다소 까다롭다:
 
-     - SUCCESS must not have side effects that affect the
-       message, because that will cause the original message and
-       the failure message to differ.
+     - SUCCESS는 메시지에 영향을 주는 부수 효과가 있으면 안
+       된다. 그러면 원래 메시지와 실패 메시지가 달라지기
+       때문이다.
 
-     - The message must not have side effects of its own, because
-       it will be printed twice on failure, or zero times on
-       success if quiet is set. */
+     - 메시지 자체에도 부수 효과가 있으면 안 된다. 실패하면
+       두 번 출력되고, quiet가 설정된 상태에서 성공하면 한 번도
+       출력되지 않기 때문이다. */
 #define CHECK(SUCCESS, ...)                     \
         do                                      \
           {                                     \

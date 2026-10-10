@@ -1,5 +1,5 @@
-/* Grows a file in chunks while subprocesses read the growing
-   file. */
+/* 하위 프로세스들이 늘어나는 파일을 읽는 동안 파일을 청크 단위로
+   늘린다. */
 
 #include <random.h>
 #include <syscall.h>

@@ -1,5 +1,5 @@
-/* Mmaps a 128 kB file "sorts" the bytes in it, using quick sort,
-   a multi-pass divide and conquer algorithm.  */
+/* 128kB 파일을 mmap하고, 여러 패스로 이루어진 분할 정복
+   알고리즘인 퀵 정렬로 그 안의 바이트들을 "정렬"한다.  */
 
 #include <debug.h>
 #include <syscall.h>

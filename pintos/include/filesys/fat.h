@@ -8,15 +8,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef uint32_t cluster_t;  /* Index of a cluster within FAT. */
+typedef uint32_t cluster_t;  /* FAT 안에서 클러스터의 인덱스. */
 
-#define FAT_MAGIC 0xEB3C9000 /* MAGIC string to identify FAT disk */
-#define EOChain 0x0FFFFFFF   /* End of cluster chain */
+#define FAT_MAGIC 0xEB3C9000 /* FAT 디스크를 식별하기 위한 MAGIC 문자열 */
+#define EOChain 0x0FFFFFFF   /* 클러스터 체인의 끝 */
 
-/* Sectors of FAT information. */
-#define SECTORS_PER_CLUSTER 1 /* Number of sectors per cluster */
-#define FAT_BOOT_SECTOR 0     /* FAT boot sector. */
-#define ROOT_DIR_CLUSTER 1    /* Cluster for the root directory */
+/* FAT 정보가 담긴 섹터. */
+#define SECTORS_PER_CLUSTER 1 /* 클러스터당 섹터 수 */
+#define FAT_BOOT_SECTOR 0     /* FAT 부트 섹터. */
+#define ROOT_DIR_CLUSTER 1    /* 루트 디렉터리용 클러스터 */
 
 void fat_init (void);
 void fat_open (void);
@@ -25,11 +25,11 @@ void fat_create (void);
 void fat_close (void);
 
 cluster_t fat_create_chain (
-    cluster_t clst /* Cluster # to stretch, 0: Create a new chain */
+    cluster_t clst /* 늘릴 클러스터 번호, 0: 새 체인 생성 */
 );
 void fat_remove_chain (
-    cluster_t clst, /* Cluster # to be removed */
-    cluster_t pclst /* Previous cluster of clst, 0: clst is the start of chain */
+    cluster_t clst, /* 제거할 클러스터 번호 */
+    cluster_t pclst /* clst의 이전 클러스터, 0: clst가 체인의 시작 */
 );
 cluster_t fat_get (cluster_t clst);
 void fat_put (cluster_t clst, cluster_t val);

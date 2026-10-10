@@ -1,5 +1,5 @@
-/* Allocates and writes to a 64 kB object on the stack.
-   This must succeed. */
+/* 스택에 64kB 객체를 할당하고 쓴다.
+   이는 반드시 성공해야 한다. */
 
 #include <string.h>
 #include "tests/arc4.h"
