@@ -134,6 +134,8 @@ void thread_yield (void);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
+bool thread_priority_greater (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+void thread_preempt (void);
 
 int thread_get_nice (void);
 void thread_set_nice (int);

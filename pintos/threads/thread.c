@@ -205,6 +205,8 @@ thread_create (const char *name, int priority,
 	/* 실행 큐에 추가한다. */
 	thread_unblock (t);
 
+	thread_preempt(); // 새로 생성된 스레드의 우선순위가 현재 스레드보다 높으면 CPU를 양보
+
 	return tid;
 }
 
@@ -238,7 +240,7 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	list_insert_ordered (&ready_list, &t->elem, thread_priority_greater, NULL); // ready_list에 삽입, 우선순위 내림차순 정렬
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -301,7 +303,7 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered (&ready_list, &curr->elem, thread_priority_greater, NULL); // ready_list에 삽입, 우선순위 내림차순 정렬
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -310,12 +312,51 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+
+	/* 우선순위를 낮춘 결과 더 높은 READY 스레드가 생겼다면 즉시 양보한다. */
+	thread_preempt();
 }
 
 /* 현재 스레드의 우선순위를 반환한다. */
 int
 thread_get_priority (void) {
 	return thread_current ()->priority;
+}
+
+
+/* A 스레드의 우선순위가 B보다 높으면 true를 반환한다.
+listen_insert_ordered()에 넘기면 리스트가 우선순위 내림차순으로 정렬되고,
+우선순위가 같은 스레드끼리는 먼저 들어온 순서(FIFO)가 유지됨 */
+bool
+thread_priority_greater (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	const struct thread *ta = list_entry (a, struct thread, elem);
+	const struct thread *tb = list_entry (b, struct thread, elem);
+
+	return ta->priority > tb->priority;
+}
+
+/* 
+ready_list 맨 앞 스레드의 우선순위가 현재 스레드보다 높으면 CPU를 양보함
+ready_list는 우선순위 내리마순으로 정렬되어 있으므로 맨 앞만 보면 됨.
+인터럽트 핸들러 안에서는 thread_yield()를 쓸 수 없기 때문에 핸들러가 끝날 때 양보하도록 예약함
+*/
+void
+thread_preempt (void) {
+	enum intr_level old_level = intr_disable ();
+
+	if (!list_empty (&ready_list)) {
+		struct thread *front = list_entry (list_front (&ready_list), struct thread, elem);
+
+		if (front->priority > thread_current ()->priority) {
+			if (intr_context ()) {
+				intr_yield_on_return ();
+			} else {
+				thread_yield ();
+			}
+		}
+	}
+
+	intr_set_level (old_level);
 }
 
 /* 현재 스레드의 nice 값을 NICE로 설정한다. */
