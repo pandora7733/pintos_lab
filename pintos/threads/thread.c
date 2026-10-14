@@ -217,11 +217,6 @@ thread_create (const char *name, int priority,
 	t->tf.ss = SEL_KDSEG;
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
-	if(thread_mlfqs){
-		struct thread *parent = thread_current();
-		t->nice = parent->nice;
-		t->recent_cpu = parent->recent_cpu;
-	}
 
 	/* Add to run queue. */
 	thread_unblock (t);
