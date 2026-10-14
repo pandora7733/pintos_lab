@@ -91,6 +91,8 @@ struct thread {
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* 바꾸는 priority */
+	int nice;
+	int recent_cpu;
 
 	int original_priority;					/*내가 원체 create에서 받은 우선순위가 아니라 양도 받은 놈 */
 

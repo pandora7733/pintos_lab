@@ -68,6 +68,7 @@ static tid_t allocate_tid (void);
 
 static bool wakeup_tick_less (const struct list_elem *a, const struct list_elem *b, void *aux);
 static bool donor_priority_less (const struct list_elem *a, const struct list_elem *b, void *aux);
+static int load_avg;
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
@@ -100,6 +101,8 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 void
 thread_init (void) {
 	ASSERT (intr_get_level () == INTR_OFF);
+	
+
 
 	/* Reload the temporal gdt for the kernel
 	 * This gdt does not include the user context.
@@ -121,6 +124,11 @@ thread_init (void) {
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid ();
+
+	/* we need to use this init values when mlfqs used*/
+	load_avg = 0;
+	initial_thread->nice = 0;
+	initial_thread->recent_cpu = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
