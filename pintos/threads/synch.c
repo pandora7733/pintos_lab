@@ -204,8 +204,9 @@ lock_acquire (struct lock *lock) {
 
 	/* 기부는 sema_down에서 잠들기 "전에" 해야 함.
 	   죽으면 아무것도 할 수 없고, 낮은 holder가 CPU를 못 받아 우선순위 역전이 발생!? */
-	if (lock->holder != NULL) {
+	if (!thread_mlfqs && lock->holder != NULL) {
 
+		// 나중에 확인 필요
 		curr->waiting_lock = lock;
 
 		push_donation (curr, lock->holder);
@@ -239,6 +240,7 @@ lock_try_acquire (struct lock *lock) {
 		lock->holder = thread_current ();
 	return success;
 }
+
 
 /* Lock 해제 시 기부 관계 제거
    현재 스레드의 donors_list에서 LOCK을 기다리던 기부자만 제거한다.
@@ -276,11 +278,13 @@ lock_release (struct lock *lock) {
 	/* donors_list 수정과 재계산 도중 문맥이 바뀌지 않도록 인터럽트를 끔 */
 	enum intr_level old_level = intr_disable ();
 
-	/* 이 락 때문에 들어온 기부만 회수 */
-	remove_donors_with_lock (lock);
+	if(!thread_mlfqs){
+		/* 이 락 때문에 들어온 기부만 회수 */
+		remove_donors_with_lock (lock);
 
-	/* 남은 기부로 우선순위를 다시 계산한다 */
-	refresh_priority ();
+		/* 남은 기부로 우선순위를 다시 계산한다 */
+		refresh_priority ();
+	}
 
 	lock->holder = NULL;
 	/* 3. 반드시 재계산 "후에" sema_up을 콜 .*/

@@ -117,9 +117,12 @@ struct thread {
 	lock을 가지고 있는 놈에게 이 
 	*/
 
+	struct list_elem all_list_elem;     /* all_list 선언 */
+
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
+	
 
 
 #ifdef USERPROG
@@ -139,7 +142,7 @@ struct thread {
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
-extern bool thread_mlfqs;
+extern bool thread_mlfqs; // <-- 이 친구를 사용해서 껐다가 켜!
 
 void thread_init (void);
 void thread_start (void);
@@ -178,5 +181,10 @@ bool thread_priority_greater(const struct list_elem *a, const struct list_elem *
 void recursive_donation(struct thread *receiver, int priority);
 void push_donation(struct thread *donor, struct thread *receiver);
 void refresh_priority(void);
+
+void thread_calc_recent_cpu_running(void);
+void thread_calc_recent_cpu_all(void);
+void thread_calc_priority_all(void);
+void thread_calc_load_avg(void);
 
 #endif /* threads/thread.h */

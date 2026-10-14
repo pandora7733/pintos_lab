@@ -136,6 +136,19 @@ timer_print_stats (void) {
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
+	if(thread_mlfqs){
+		//running cpu recent_cpu 증가
+		thread_calc_recent_cpu_running();
+		if(ticks % 100 ==0){
+			//매초 load_avgh, 전체 recent_cpu 계산
+			thread_calc_load_avg();
+			thread_calc_recent_cpu_all();
+		}
+		if(ticks % 4 ==0){
+			//전체 쓰레드 priority 갱신
+			thread_calc_priority_all();
+		}
+	}
 	thread_tick();
 	thread_wake(ticks);
 }
