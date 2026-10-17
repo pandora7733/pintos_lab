@@ -26,6 +26,7 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
+static void argument_stack (char **argv, int argc, struct intr_frame *if_);
 
 char* arg_pashing(char *s, char **save_ptr){
 	char *token;
@@ -229,9 +230,11 @@ process_exec (void *f_name) {
  * does nothing. */
 int
 process_wait (tid_t child_tid UNUSED) {
-	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
+	/* XXX: Hint) The pintos exit if process_` (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	while (1)
+		thread_yield ();
 	return -1;
 }
 
@@ -457,6 +460,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+	
 
 	success = true;
 
@@ -466,6 +470,45 @@ done:
 	return success;
 }
 
+// argument_stack() arg를 받아와서 stack에 넣어주는 함수
+static void
+argument_stack(char **argv/*파싱된 문자열 받아서 온다.*/, int argc/*단어의 계수*/, struct intr_frame *if_/*스냅샷을 찍어서 보관*/){
+	uint8_t *rsp = (uint8_t *) if_->rsp; // -> 이미 if_->rsp는 USER_STACK으로 초기화 되어있음 따라서 여기가 User_stack의 최상단 주소가 됨.
+
+	/* 인자 문자열을 마지막 것부터 복사하고, argv[i]를 사용자 스택 위의 주소로 바꿔 둔다. */
+	for (int i = argc - 1; i >= 0; i--) {
+		size_t len = strlen (argv[i]) + 1;
+		rsp -= len;
+		memcpy (rsp, argv[i], len); // <- 커널 커널 스택의 메모리의 스택을 유저 스택으로 복사함
+		argv[i] = (char *) rsp;  // <- 복사하 메모리의 위치를 기록
+	}
+
+	/* 8바이트 경계로 정렬한다. */
+	while ((uintptr_t) rsp % 8 != 0) {
+		rsp--;
+		*rsp = 0;
+	}
+
+	/* 스택의 끝을 표기 */
+	rsp -= sizeof (char *); // rsp -= 8;
+	*(char **) rsp = NULL;
+
+	/* 위에서 유저스택에 복사한 메모리의 주소를 가지고 온다 */
+	for (int i = argc - 1; i >= 0; i--) {
+		rsp -= sizeof (char *);
+		*(char **) rsp = argv[i];
+	}
+
+	/* main(argc, argv)의 인자 레지스터 */
+	if_->R.rdi = argc;
+	if_->R.rsi = (uint64_t) rsp;
+	
+	/* 6. 가짜 반환 주소 */
+	rsp -= sizeof (void *);
+	*(void **) rsp = NULL;
+
+	if_->rsp = (uint64_t) rsp;
+}	
 
 /* Checks whether PHDR describes a valid, loadable segment in
  * FILE and returns true if so, false otherwise. */
