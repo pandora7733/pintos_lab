@@ -27,6 +27,32 @@ static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
 
+char* arg_pashing(char *s, char **save_ptr){
+	char *token;
+	if(s == NULL){
+		s = *save_ptr;
+	}
+	while(*s == ' '&& *s != '\0'){
+		s++;}
+
+	if(*s == '\0'){
+		*save_ptr = s;
+		return NULL;
+	}
+
+	token = s;
+	while(*s != ' ' && *s != '\0'){
+		s++;
+	}if(*s!='\0'){
+		*s = '\0';
+		*save_ptr = s + 1;
+	}else{
+		*save_ptr = s;
+	}
+	return token;
+}
+
+
 /* General process initializer for initd and other process. */
 static void
 process_init (void) {
@@ -42,7 +68,7 @@ tid_t
 process_create_initd (const char *file_name) {
 	char *fn_copy;
 	tid_t tid;
-
+	
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
 	fn_copy = palloc_get_page (0);
@@ -51,7 +77,9 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 
 	/* Create a new thread to execute FILE_NAME. */
+	
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
@@ -414,6 +442,19 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
 
+	char *token, *save_ptr;
+	char *token_list[64];
+	int count = 0;
+	if(token = arg_pashing(file_name,&save_ptr)){
+		token_list[0] = token;
+	}
+	while(token != NULL){
+		token = arg_pashing(NULL,&save_ptr);
+		count++;
+		token_list[count] = token;
+	}
+	token_list[count++] = NULL;
+	
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 
