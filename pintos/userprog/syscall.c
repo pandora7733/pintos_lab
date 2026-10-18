@@ -37,6 +37,24 @@ syscall_init (void) {
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 }
 
+int 
+sys_write (int fd, const void *buffer, unsigned size){
+	if (fd == 1) {
+		putbuf (buffer, size);
+		return size;
+	}
+	return -1;   /* fd ≥ 2(파일)는 fd 테이블 만든 뒤 추가 */
+}
+
+// 완성
+void
+sys_exit(int status){
+	thread_current()->exit_status = status;
+	thread_exit();
+}
+
+
+
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
@@ -69,17 +87,16 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 	switch(f->R.rax){
 		case SYS_HALT: // 민구
-			halt();
+			//halt();
 			break;
 		case SYS_EXIT:
-			exit((int) f->R.rdi);
+			sys_exit((int) f->R.rdi); // 종료 호출
 			break;
 		case SYS_FORK:
 			break;
 		case SYS_EXEC:
 			break;
 		case SYS_WAIT: // 민구
-			// wait((pid_t) f->R.rdi);
 			break;
 		case SYS_CREATE:
 			break;
@@ -90,9 +107,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_FILESIZE:
 			break;
 		case SYS_READ:
-				return read((int) f->R.rdi, (void *) f->R.rsi, (unsigned) f->R.rdx);
+			//	return read((int) f->R.rdi, (void *) f->R.rsi, (unsigned) f->R.rdx);
 			break;
 		case SYS_WRITE: // 민구
+			f->R.rax = sys_write ((int) f->R.rdi, (const void *) f->R.rsi, (unsigned) f->R.rdx);
 			break;
 		case SYS_SEEK:
 			break;
@@ -124,54 +142,30 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		// case SYS_UMOUNT:
 		// 	break;
 		default:
+			sys_exit(-1); // 시스템콜 오류
 			break;
 
 	}
-	printf ("system call!\n");
-	thread_exit ();
 }
 
-void 
-halt(void){
-	power_off();
-}
-
-void
-exit(int status){
-
-	thread_exit();
-
-	return status;
-}
+// void 
+// halt(void){
+// 	power_off();
+// }
 
 // int 
 // wait (pid_t pid){
 // 	return ;
 // }
 
-int read(int fd, void *buffer, unsigned size){
+// int read(int fd, void *buffer, unsigned size){
 
-	// 테스트 코드 (유저 쪽)
-	// int fd = open("sample.txt");   // 커널이 3을 돌려줌
-	// read(fd, buf, 10);             // 3을 다시 넘김 → 커널은 rdi에서 3을 꺼냄
-	// close(fd);
+// 	// 테스트 코드 (유저 쪽)
+// 	// int fd = open("sample.txt");   // 커널이 3을 돌려줌
+// 	// read(fd, buf, 10);             // 3을 다시 넘김 → 커널은 rdi에서 3을 꺼냄
+// 	// close(fd);
 
-	// fd는 그냥 f->R.rdi에 들어오는 숫자
+// 	// fd는 그냥 f->R.rdi에 들어오는 숫자
 
-	return file_read(fd, buffer, size);
-}
-
-int write (int fd, const void *buffer, unsigned size){
-	switch (fd){
-		case 0:
-			return 0;
-		case 1:
-			return putbuf(buffer, size);
-		case 2:
-			return file_read(fd, buffer, size);
-		default:
-			break;
-	}
-	putbuf(buffer, size);
-	return size;
-}
+// 	return file_read(fd, buffer, size);
+// }

@@ -96,6 +96,8 @@ struct thread {
 
 	int original_priority;					/*내가 원체 create에서 받은 우선순위가 아니라 양도 받은 놈 */
 
+	int exit_status; //종료 상태
+
 	int64_t wake_ticks;					/*wake tick*/
 
 	struct lock *waiting_lock;					/*지금 기다리고 있는 락 위치*/

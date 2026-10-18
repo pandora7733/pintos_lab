@@ -463,7 +463,7 @@ thread_exit (void) {
 	   We will be destroyed during the call to schedule_tail(). */
 	intr_disable ();
 	list_remove (&thread_current ()->all_list_elem); // <-- exit 하면 리스트 삭제
-	do_schedule (THREAD_DYING);
+	do_schedule (THREAD_DYING); // 다음 스레드가 메모리 해제를 해줌
 	NOT_REACHED ();
 }
 
@@ -677,6 +677,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	
+	t->exit_status = -1;
 	t->waiting_lock = NULL; // 처음에 기다리는 lock이 없어서
 	list_init (&t->donors_list); // 나에게 기부한 스레드 목록 
 
