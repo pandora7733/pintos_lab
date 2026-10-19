@@ -70,7 +70,8 @@ tid_t
 process_create_initd (const char *file_name) {
 	char *fn_copy;
 	tid_t tid;
-	
+	char *file_name_ptr;
+
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
 	fn_copy = palloc_get_page (0);
@@ -79,8 +80,7 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 
 	/* Create a new thread to execute FILE_NAME. */
-	
-	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	tid = thread_create (arg_pashing(file_name, &file_name_ptr), PRI_DEFAULT, initd, fn_copy);
 	
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
@@ -234,7 +234,7 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_` (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	timer_sleep(2000);
+	timer_sleep(500);
 	return -1;
 }
 
