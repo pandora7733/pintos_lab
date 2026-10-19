@@ -58,6 +58,7 @@ process_create_initd (const char *file_name) {
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (arg_pashing(file_name, &file_name_ptr), PRI_DEFAULT, initd, fn_copy);
 	
+
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
@@ -205,27 +206,64 @@ process_exec (void *f_name) {
  *
  * This function will be implemented in problem 2-2.  For now, it
  * does nothing. */
+
+/* 자식 찾기 프로젝트 */
+struct thread
+*find_child(struct thread *parent, tid_t child_tid){
+	struct list_elem *e;
+	struct thread *child;
+
+	if (!list_empty(&parent->child_list)){
+		e = list_front(&parent->child_list);
+		while(e != list_end(&parent->child_list)){
+			child = list_entry(e,struct thread,child_elem);
+			if(child->tid == child_tid){
+				return child;
+			}
+			e = list_next(e);
+		}
+	}
+	return NULL;
+}
+
 int
 process_wait (tid_t child_tid UNUSED) {
-	/* XXX: Hint) The pintos exit if process_` (initd), we recommend you
-	 * XXX:       to add infinite loop here before
-	 * XXX:       implementing the process_wait. */
-	timer_sleep(500);
-	return -1;
+	struct thread *parent = thread_current(); // 부모 프로세스
+	struct thread *child = find_child(parent,child_tid);
+	if(child == NULL){
+		return -1;
+	}
+	
+	sema_down(&parent->process_sema);
+	while(NULL != find_child(parent,child_tid)){
+		sema_down(&parent->process_sema);
+	}
+	
+	return child->exit_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
-	struct thread *curr = thread_current ();
+	struct thread *curr = thread_current (); // 자식 프로세스
+	struct thread *parent = thread_current ()->parent_process;
+	struct thread *child;
+
+
 	/* TODO: Your code goes here.
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 	
+	// sema_up 구현
+	
 	// 유저 프로세스(pml4 있음)만 종료 메시지 출력, 커널 스레드는 출력 안 함
 	if(curr->pml4 != NULL){
 		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+	}
+	if(parent != NULL && (child = find_child(parent,curr->tid)) != NULL){
+		list_remove(&child->child_elem);
+		sema_up(&parent->process_sema);
 	}
 	process_cleanup ();
 }

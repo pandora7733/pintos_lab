@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -125,6 +126,17 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 	
+	struct thread *parent_process;
+	/* 부모 프로세스를 파악 할 수 있도록 포인터 생성*/
+
+	struct list_elem child_elem;
+	/* child_elem 리스트를 위해 선언*/
+
+	struct list child_list;
+	/* child 리스트 선언*/
+
+	struct semaphore process_sema;
+	/* 세마포어 선언*/
 
 
 #ifdef USERPROG
