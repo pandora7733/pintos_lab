@@ -4,9 +4,17 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/loader.h"
+#include "threads/synch.h"
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+
+static struct lock file_lock;
+
+int sys_write(int fd, const void *buffer, unsigned size);
+int sys_open(const char *file);
+int sys_read(int fd, void *buffer, unsigned size);
+void sys_exit(int status);
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -24,13 +32,10 @@ void syscall_handler (struct intr_frame *);
 #define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
-int sys_write(int fd, const void *buffer, unsigned size);
-int sys_open(const char *file);
-void sys_exit(int status);
-
-
 
 syscall_init (void) {
+	lock_init(&file_lock);
+
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48  |
 			((uint64_t)SEL_KCSEG) << 32);
 	write_msr(MSR_LSTAR, (uint64_t) syscall_entry);
@@ -97,11 +102,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_REMOVE:
 			break;
 		case SYS_OPEN:
+			f->R.rax = sys_open((char *) f->R.rdi);
 			break;
 		case SYS_FILESIZE:
 			break;
 		case SYS_READ:
-			//	return read((int) f->R.rdi, (void *) f->R.rsi, (unsigned) f->R.rdx);
+			f->R.rax = sys_read((int) f->R.rdi, (void *) f->R.rsi, (unsigned) f->R.rdx);
 			break;
 		case SYS_WRITE: // 민구
 			f->R.rax = sys_write ((int) f->R.rdi, (const void *) f->R.rsi, (unsigned) f->R.rdx);
@@ -173,32 +179,48 @@ sys_write (int fd, const void *buffer, unsigned size){
 	return -1;   // fd ≥ 2(파일)는 fd 테이블 만든 뒤 추가
 }
 
-int sys_open(const char *file){ // 파일의 주소를 fd에 넣고 넣은 인덱스를 반환
+int sys_open(const char *file){ 
+	// 파일의 주소를 fd에 넣고 넣은 인덱스를 반환
 	// 인덱스를 기억하는 건 유저 프로그램의 책임
-	struct thread *curr = thread_current();
 	int fd;
 
 	check_address(file); // 포인터가 실제로 존재하는지 확인
 
-	// add lock 점유
+	lock_acquire(&file_lock);
 
 	struct file *cur_file = filesys_open(file);
 	
-	// release lock 해제
+	lock_release(&file_lock);
+
 	if (cur_file == NULL){
 		return -1;
 	}
 
 	// fd 인덱스 찾아서 넣고 가져오기
-	// fd = fd_alloc(cur_file);
+	fd = fd_alloc(cur_file); // 아직 구현안함
 
 	if(fd == -1){
 		// 파일을 닫아줘야 함
+		fd_close(cur_file); // 아직 구현안함
 		return -1;
 	}
 
 	return fd;
+}
 
+int sys_read(int fd, void *buffer, unsigned size){
+	if(fd == 0){
+		// 버퍼에 쓰기
+	}
+	else if (fd == 1){
+		return -1;
+	}
+	else{
+		void *ptr = fd_get(fd);
+		check_address(ptr);
+
+		
+	}
 }
 
 // 완성
