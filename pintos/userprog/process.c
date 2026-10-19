@@ -26,6 +26,33 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
+static void argument_stack (char **argv, int argc, struct intr_frame *if_);
+
+char* arg_pashing(char *s, char **save_ptr){
+	char *token;
+	if(s == NULL){
+		s = *save_ptr;
+	}
+	while(*s == ' '&& *s != '\0'){
+		s++;}
+
+	if(*s == '\0'){
+		*save_ptr = s;
+		return NULL;
+	}
+
+	token = s;
+	while(*s != ' ' && *s != '\0'){
+		s++;
+	}if(*s!='\0'){
+		*s = '\0';
+		*save_ptr = s + 1;
+	}else{
+		*save_ptr = s;
+	}
+	return token;
+}
+
 
 /* General process initializer for initd and other process. */
 static void
@@ -42,7 +69,7 @@ tid_t
 process_create_initd (const char *file_name) {
 	char *fn_copy;
 	tid_t tid;
-
+	
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
 	fn_copy = palloc_get_page (0);
@@ -51,7 +78,9 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 
 	/* Create a new thread to execute FILE_NAME. */
+	
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
@@ -201,9 +230,11 @@ process_exec (void *f_name) {
  * does nothing. */
 int
 process_wait (tid_t child_tid UNUSED) {
-	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
+	/* XXX: Hint) The pintos exit if process_` (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	while (1)
+		thread_yield ();
 	return -1;
 }
 
@@ -215,7 +246,11 @@ process_exit (void) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
-
+	
+	// 유저 프로세스(pml4 있음)만 종료 메시지 출력, 커널 스레드는 출력 안 함
+	if(curr->pml4 != NULL){
+		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+	}
 	process_cleanup ();
 }
 
@@ -414,8 +449,22 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
 
+	char *token, *save_ptr;
+	char *token_list[64];
+	int count = 0;
+	if(token = arg_pashing(file_name,&save_ptr)){
+		token_list[0] = token;
+	}
+	while(token != NULL){
+		token = arg_pashing(NULL,&save_ptr);
+		count++;
+		token_list[count] = token;
+	}
+	token_list[count++] = NULL;
+	
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+	
 
 	success = true;
 
@@ -425,6 +474,45 @@ done:
 	return success;
 }
 
+// argument_stack() arg를 받아와서 stack에 넣어주는 함수
+static void
+argument_stack(char **argv/*파싱된 문자열 받아서 온다.*/, int argc/*단어의 계수*/, struct intr_frame *if_/*스냅샷을 찍어서 보관*/){
+	uint8_t *rsp = (uint8_t *) if_->rsp; // -> 이미 if_->rsp는 USER_STACK으로 초기화 되어있음 따라서 여기가 User_stack의 최상단 주소가 됨.
+
+	/* 인자 문자열을 마지막 것부터 복사하고, argv[i]를 사용자 스택 위의 주소로 바꿔 둔다. */
+	for (int i = argc - 1; i >= 0; i--) {
+		size_t len = strlen (argv[i]) + 1;
+		rsp -= len;
+		memcpy (rsp, argv[i], len); // <- 커널 커널 스택의 메모리의 스택을 유저 스택으로 복사함
+		argv[i] = (char *) rsp;  // <- 복사하 메모리의 위치를 기록
+	}
+
+	/* 8바이트 경계로 정렬한다. */
+	while ((uintptr_t) rsp % 8 != 0) {
+		rsp--;
+		*rsp = 0;
+	}
+
+	/* 스택의 끝을 표기 */
+	rsp -= sizeof (char *); // rsp -= 8;
+	*(char **) rsp = NULL;
+
+	/* 위에서 유저스택에 복사한 메모리의 주소를 가지고 온다 */
+	for (int i = argc - 1; i >= 0; i--) {
+		rsp -= sizeof (char *);
+		*(char **) rsp = argv[i];
+	}
+
+	/* main(argc, argv)의 인자 레지스터 */
+	if_->R.rdi = argc;
+	if_->R.rsi = (uint64_t) rsp;
+	
+	/* 6. 가짜 반환 주소 */
+	rsp -= sizeof (void *);
+	*(void **) rsp = NULL;
+
+	if_->rsp = (uint64_t) rsp;
+}	
 
 /* Checks whether PHDR describes a valid, loadable segment in
  * FILE and returns true if so, false otherwise. */
