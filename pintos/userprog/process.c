@@ -27,31 +27,7 @@ static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
 static void argument_stack (char **argv, int argc, struct intr_frame *if_);
-
-char* arg_pashing(char *s, char **save_ptr){
-	char *token;
-	if(s == NULL){
-		s = *save_ptr;
-	}
-	while(*s == ' '&& *s != '\0'){
-		s++;}
-
-	if(*s == '\0'){
-		*save_ptr = s;
-		return NULL;
-	}
-
-	token = s;
-	while(*s != ' ' && *s != '\0'){
-		s++;
-	}if(*s!='\0'){
-		*s = '\0';
-		*save_ptr = s + 1;
-	}else{
-		*save_ptr = s;
-	}
-	return token;
-}
+char* arg_pashing(char *s, char **save_ptr);
 
 
 /* General process initializer for initd and other process. */
@@ -473,6 +449,45 @@ done:
 	/* We arrive here whether the load is successful or not. */
 	file_close (file);
 	return success;
+}
+
+// file_name을 공백 기준으로 분할해 token을 나눠주는 함수
+char* 
+arg_pashing(char *s, char **save_ptr){
+	
+	char *token; /*저장할 토큰 주소 설정*/
+
+	/* char *s가 분할할 문자열 주소가 아닌 NULL을 받을 경우 예전에 저장한 주소로 이동*/
+	if(s == NULL){ 
+		s = *save_ptr;
+	}
+
+	/* 빈칸이 앞에 있을 경우 +를 증가시켜 위치를 이동 */
+	while(*s == ' '&& *s != '\0'){
+		s++;
+	}
+
+	/* 만일 앞에 빈칸을 없애는 중에 문자열의 끝에 도달할 경우 NULL을 반환 */
+	if(*s == '\0'){
+		*save_ptr = s;
+		return NULL;
+	}
+
+	/* 토큰 시작 주소를 s로 설정 이후 빈칸을 만날때 까지 ++로 앞으로 이동 */
+	token = s;
+	while(*s != ' ' && *s != '\0'){
+		s++;
+	}
+	
+	/* 빈칸을 '\0'으로 변경해준뒤 s + 1로 save_ptr를 설정 */
+	if(*s!='\0'){
+		*s = '\0';
+		*save_ptr = s + 1;
+	}else{
+		*save_ptr = s;
+	}
+
+	return token;
 }
 
 // argument_stack() arg를 받아와서 stack에 넣어주는 함수
