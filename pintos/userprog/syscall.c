@@ -24,7 +24,12 @@ void syscall_handler (struct intr_frame *);
 #define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
-void
+int sys_write(int fd, const void *buffer, unsigned size);
+int sys_open(const char *file);
+void sys_exit(int status);
+
+
+
 syscall_init (void) {
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48  |
 			((uint64_t)SEL_KCSEG) << 32);
@@ -37,23 +42,12 @@ syscall_init (void) {
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 }
 
-int 
-sys_write (int fd, const void *buffer, unsigned size){
-	if (fd == 1) {
-		putbuf (buffer, size);
-		return size;
+// 포인터가 존재하는지 확인하는 유틸 함수
+void check_address(const void *ptr){
+	if(ptr == NULL || !is_user_vaddr(ptr) || !pml4_get_page(thread_current()->pml4, ptr)){
+		sys_exit(-1);
 	}
-	return -1;   /* fd ≥ 2(파일)는 fd 테이블 만든 뒤 추가 */
 }
-
-// 완성
-void
-sys_exit(int status){
-	thread_current()->exit_status = status;
-	thread_exit();
-}
-
-
 
 /* The main system call interface */
 void
@@ -169,3 +163,47 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 // 	return file_read(fd, buffer, size);
 // }
+
+int 
+sys_write (int fd, const void *buffer, unsigned size){
+	if (fd == 1) {
+		putbuf (buffer, size);
+		return size;
+	}
+	return -1;   // fd ≥ 2(파일)는 fd 테이블 만든 뒤 추가
+}
+
+int sys_open(const char *file){ // 파일의 주소를 fd에 넣고 넣은 인덱스를 반환
+	// 인덱스를 기억하는 건 유저 프로그램의 책임
+	struct thread *curr = thread_current();
+	int fd;
+
+	check_address(file); // 포인터가 실제로 존재하는지 확인
+
+	// add lock 점유
+
+	struct file *cur_file = filesys_open(file);
+	
+	// release lock 해제
+	if (cur_file == NULL){
+		return -1;
+	}
+
+	// fd 인덱스 찾아서 넣고 가져오기
+	// fd = fd_alloc(cur_file);
+
+	if(fd == -1){
+		// 파일을 닫아줘야 함
+		return -1;
+	}
+
+	return fd;
+
+}
+
+// 완성
+void
+sys_exit(int status){
+	thread_current()->exit_status = status;
+	thread_exit();
+}
