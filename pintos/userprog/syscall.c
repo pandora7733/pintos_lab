@@ -16,6 +16,11 @@
 
 struct lock file_lock;
 
+/* TEMP: 팀원 fd 테이블 머지 전 임시 스텁 — 머지 시 삭제 */
+static int fd_alloc (struct file *f UNUSED) { return -1; }
+static struct file *fd_get (int fd UNUSED) { return NULL; }
+static void fd_close (int fd UNUSED) { }
+
 int sys_write(int fd, const void *buffer, unsigned size);
 int sys_open(const char *file);
 int sys_read(int fd, void *buffer, unsigned size);
