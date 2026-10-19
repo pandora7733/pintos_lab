@@ -72,16 +72,16 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// 값을 반환하는 시스템 호출은 해당 rax 레지스터의 멤버를 수정하여 값을 반환할 수 있습니다
 	// struct intr_frame
 
-// 입구 코드 (syscall-entry.S)
+	// 입구 코드 (syscall-entry.S)
 
-// 유저 rsp를 잠깐 보관하고, TSS에서 커널 스택 위치를 꺼내 rsp를 바꿉니다.
-// 커널 스택에 차례로 저장합니다. 이 묶음이 intr_frame입니다.
-// 돌아갈 정보: rip(rcx에 있던 값), cs, rflags(r11에 있던 값), 유저 rsp, ss
-// 일반 레지스터 전부 → R
-// 그 묶음의 주소를 인자로 syscall_handler(f)를 부릅니다.
+	// 유저 rsp를 잠깐 보관하고, TSS에서 커널 스택 위치를 꺼내 rsp를 바꿉니다.
+	// 커널 스택에 차례로 저장합니다. 이 묶음이 intr_frame입니다.
+	// 돌아갈 정보: rip(rcx에 있던 값), cs, rflags(r11에 있던 값), 유저 rsp, ss
+	// 일반 레지스터 전부 → R
+	// 그 묶음의 주소를 인자로 syscall_handler(f)를 부릅니다.
 
-// syscall-entry.S에서 호출함
-// movabs $syscall_handler, %r12
+	// syscall-entry.S에서 호출함
+	// movabs $syscall_handler, %r12
 
 	// TODO: Your implementation goes here.
 	switch(f->R.rax){
@@ -171,24 +171,16 @@ syscall_handler (struct intr_frame *f UNUSED) {
 // }
 
 int 
-sys_write (int fd, const void *buffer, unsigned size){
-	if (fd == 1) {
-		putbuf (buffer, size);
-		return size;
-	}
-	return -1;   // fd ≥ 2(파일)는 fd 테이블 만든 뒤 추가
-}
-
-int sys_open(const char *file){ 
+sys_open(const char *file_name){ 
 	// 파일의 주소를 fd에 넣고 넣은 인덱스를 반환
 	// 인덱스를 기억하는 건 유저 프로그램의 책임
 	int fd;
 
-	check_address(file); // 포인터가 실제로 존재하는지 확인
+	check_address(file_name); // 포인터가 실제로 존재하는지 확인
 
 	lock_acquire(&file_lock);
 
-	struct file *cur_file = filesys_open(file);
+	struct file *cur_file = filesys_open(file_name);
 	
 	lock_release(&file_lock);
 
@@ -208,19 +200,56 @@ int sys_open(const char *file){
 	return fd;
 }
 
-int sys_read(int fd, void *buffer, unsigned size){
+int 
+sys_read(int fd, void *buffer, unsigned size){
+	check_address(buffer); // 버퍼가 정상인지 검사
+	int result = -1;
+
+	// 키보드
 	if(fd == 0){
-		// 버퍼에 쓰기
+		uint8_t *buf = buffer; // void 말고 8 포인터로 형변환
+		for (unsigned i = 0; i < size; i++)
+		{
+			buf[i] = input_getc();
+		}
+		result = size;
 	}
 	else if (fd == 1){
 		return -1;
 	}
 	else{
-		void *ptr = fd_get(fd);
-		check_address(ptr);
+		struct file *file = fd_get(fd);
 
-		
+		if(file == NULL){
+			return -1;
+		}
+
+		lock_acquire(&file_lock);
+		result = file_read(file, buffer, size); // 읽은 값 반환
+		lock_release(&file_lock);
 	}
+	return result;
+}
+
+int 
+sys_write (int fd, const void *buffer, unsigned size){
+	if(fd == 0){
+		return -1;
+	}
+	else if (fd == 1) {
+		putbuf (buffer, size);
+		return size;
+	}
+	else{
+		struct file *file = fd_get(fd);
+
+		if(file == NULL){
+			return -1;
+		}
+
+		int result = file_write(file, buffer, size);
+	}
+	return -1;   // fd ≥ 2(파일)는 fd 테이블 만든 뒤 추가
 }
 
 // 완성
