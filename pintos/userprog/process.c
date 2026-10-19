@@ -1,4 +1,5 @@
 #include "userprog/process.h"
+
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
@@ -233,8 +234,7 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_` (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	while (1)
-		thread_yield ();
+	timer_sleep(2000);
 	return -1;
 }
 
