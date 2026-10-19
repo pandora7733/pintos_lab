@@ -28,6 +28,9 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+struct file; // filesys 헤더를 가져오지 않도록 하기 위함
+#define FD_MAX 128 // 프로세스당 fd 최대 개수 (0, 1 예약 → 2~127)
+
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -130,6 +133,8 @@ struct thread {
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
+	struct file **fd_table; // fd -> 열린 파일
+	int next_fd; // 다음에 배정할 fd 번호
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */

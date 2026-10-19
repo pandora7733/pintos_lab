@@ -32,9 +32,19 @@ char* arg_pashing(char *s, char **save_ptr);
 
 
 /* General process initializer for initd and other process. */
-static void
+static bool // <- 메모리 부족을 감지하기 위해서 반환값을 bool로 변환
 process_init (void) {
 	struct thread *current = thread_current ();
+
+	// fd를 초기화
+	// palloc_get_page -> 커널 메모리를 페이지 단위로 받음
+	current->fd_table = palloc_get_page(PAL_ZERO); // 테이블 생성 + 모든 칸 NULL
+	if (current->fd_table == NULL) {
+		return false;
+	}
+	
+	current->next_fd = 2; // 0, 1은 다른 애들이 차지, 2부터 배정 시작 (3 부터도 가능)
+	return true;
 }
 
 /* Starts the first userland program, called "initd", loaded from FILE_NAME.
@@ -70,7 +80,9 @@ initd (void *f_name) {
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
-	process_init ();
+	if (!process_init ()) {
+		PANIC("initd의 초기화를 실패 해버렸습니다.\n"); // 메모리가 부족해서 할당에 실패하면 fd_table이 NULL인 채로 프로세스가 실행되는 문제가 발생!!
+	}
 
 	if (process_exec (f_name) < 0)
 		PANIC("Fail to launch initd\n");
@@ -155,7 +167,9 @@ __do_fork (void *aux) {
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
 
-	process_init ();
+	if (!process_init ()) {
+		goto error; // 메모리가 부족해서 할당에 실패하면 fd_table이 NULL인 채로 프로세스가 실행되는 문제가 발생!!
+	}
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
