@@ -364,6 +364,18 @@ load (const char *file_name, struct intr_frame *if_) {
 	bool success = false;
 	int i;
 
+	char *token, *save_ptr;
+	char *token_list[64];
+	int count = 0;
+	if(token = arg_pashing(file_name,&save_ptr)){
+		token_list[count] = token;
+	}
+	while(token != NULL){
+		token = arg_pashing(NULL,&save_ptr);
+		count++;
+		token_list[count] = token;
+	}
+
 	/* Allocate and activate page directory. */
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
@@ -371,7 +383,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	process_activate (thread_current ());
 
 	/* Open executable file. */
-	file = filesys_open (file_name);
+	file = filesys_open (token_list[0]);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
@@ -449,22 +461,11 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
 
-	char *token, *save_ptr;
-	char *token_list[64];
-	int count = 0;
-	if(token = arg_pashing(file_name,&save_ptr)){
-		token_list[0] = token;
-	}
-	while(token != NULL){
-		token = arg_pashing(NULL,&save_ptr);
-		count++;
-		token_list[count] = token;
-	}
-	token_list[count++] = NULL;
 	
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 	
+	argument_stack(&token_list, count, if_);
 
 	success = true;
 
@@ -484,7 +485,7 @@ argument_stack(char **argv/*파싱된 문자열 받아서 온다.*/, int argc/*�
 		size_t len = strlen (argv[i]) + 1;
 		rsp -= len;
 		memcpy (rsp, argv[i], len); // <- 커널 커널 스택의 메모리의 스택을 유저 스택으로 복사함
-		argv[i] = (char *) rsp;  // <- 복사하 메모리의 위치를 기록
+		argv[i] = (char *) rsp;  // <- 복사한 메모리의 위치를 기록
 	}
 
 	/* 8바이트 경계로 정렬한다. */
