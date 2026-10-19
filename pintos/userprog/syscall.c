@@ -8,13 +8,19 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+#include "threads/vaddr.h"     // is_user_vaddr
+#include "threads/mmu.h"       // pml4_get_page
+#include "filesys/filesys.h"   // filesys_open
+#include "filesys/file.h"      // file_read, file_write, file_close
+#include "devices/input.h"     // input_getc
 
-static struct lock file_lock;
+struct lock file_lock;
 
 int sys_write(int fd, const void *buffer, unsigned size);
 int sys_open(const char *file);
 int sys_read(int fd, void *buffer, unsigned size);
 void sys_exit(int status);
+void sys_close (int fd);
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -32,7 +38,7 @@ void syscall_handler (struct intr_frame *);
 #define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
-
+void
 syscall_init (void) {
 	lock_init(&file_lock);
 
@@ -48,7 +54,8 @@ syscall_init (void) {
 }
 
 // 포인터가 존재하는지 확인하는 유틸 함수
-void check_address(const void *ptr){
+static void 
+check_address(const void *ptr){
 	if(ptr == NULL || !is_user_vaddr(ptr) || !pml4_get_page(thread_current()->pml4, ptr)){
 		sys_exit(-1);
 	}
@@ -101,12 +108,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_REMOVE:
 			break;
-		case SYS_OPEN:
+		case SYS_OPEN: // 민구
 			f->R.rax = sys_open((char *) f->R.rdi);
 			break;
 		case SYS_FILESIZE:
 			break;
-		case SYS_READ:
+		case SYS_READ: // 민구
 			f->R.rax = sys_read((int) f->R.rdi, (void *) f->R.rsi, (unsigned) f->R.rdx);
 			break;
 		case SYS_WRITE: // 민구
@@ -117,6 +124,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_TELL:
 			break;
 		case SYS_CLOSE:
+			sys_close ((int) f->R.rdi);
 			break;
 		// Project Part 3 - 4
 		// case SYS_MMAP:
@@ -193,7 +201,10 @@ sys_open(const char *file_name){
 
 	if(fd == -1){
 		// 파일을 닫아줘야 함
-		fd_close(cur_file); // 아직 구현안함
+		lock_acquire(&file_lock);
+		file_close(cur_file); // 파일 오픈으로 연걸 닫아야 함
+		lock_release(&file_lock);
+
 		return -1;
 	}
 
@@ -220,7 +231,7 @@ sys_read(int fd, void *buffer, unsigned size){
 	else{
 		struct file *file = fd_get(fd);
 
-		if(file == NULL){
+		if(file == NULL){ // 널검사
 			return -1;
 		}
 
@@ -233,23 +244,41 @@ sys_read(int fd, void *buffer, unsigned size){
 
 int 
 sys_write (int fd, const void *buffer, unsigned size){
-	if(fd == 0){
+	int result = -1;
+	check_address(buffer);
+
+	if(fd == 0){ // 사용 불가
 		return -1;
 	}
-	else if (fd == 1) {
+	else if (fd == 1) { // 버퍼 내용을 화면에 출력
 		putbuf (buffer, size);
 		return size;
 	}
-	else{
+	else{ // fd 매핑해서 읽어오기
 		struct file *file = fd_get(fd);
 
-		if(file == NULL){
+		if(file == NULL){ // 널검사
 			return -1;
 		}
 
-		int result = file_write(file, buffer, size);
+		lock_acquire(&file_lock);
+		result = file_write(file, buffer, size); // 쓴 값 반환
+		lock_release(&file_lock);
 	}
-	return -1;   // fd ≥ 2(파일)는 fd 테이블 만든 뒤 추가
+	return result;
+}
+
+void 
+sys_close (int fd){
+	// 음수나 예외 처리
+	// 모든 경우를 처리할 수는 없긴 함
+	if (fd < 2){ 
+		return;
+	}
+
+	lock_acquire(&file_lock);
+	fd_close(fd); // 여기서 락을 잡았으니, fd_close에서 락을 잡으면 안됌
+	lock_release(&file_lock);
 }
 
 // 완성
