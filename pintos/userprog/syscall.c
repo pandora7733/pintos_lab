@@ -13,7 +13,9 @@
 #include "filesys/filesys.h"   // filesys_open
 #include "filesys/file.h"      // file_read, file_write, file_close
 #include "devices/input.h"     // input_getc
+#include "userprog/process.h"
 
+typedef int pid_t;
 struct lock file_lock;
 
 /* TEMP: 팀원 fd 테이블 머지 전 임시 스텁 — 머지 시 삭제 */
@@ -24,7 +26,7 @@ static void fd_close (int fd UNUSED) { }
 void sys_exit(int status); // 일부 구현
 // pid_t fork (const char *thread_name); // 미구연
 int exec (const char *file); // 미구현
-// int wait (pid_t pid); // 미구현
+int sys_wait (pid_t pid); // 민성 ^&^
 bool create (const char *file, unsigned initial_size); // 미구현
 bool remove (const char *file); // 미구현
 int sys_open(const char *file); // 구현/테스트X
@@ -131,6 +133,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_EXEC:
 			break;
 		case SYS_WAIT:
+			f->R.rax = sys_wait((int) f->R.rdi);
 			break;
 		case SYS_CREATE:
 			break;
@@ -149,7 +152,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_SEEK:
 			break;
-		case SYS_TELL:
+		case SYS_TELL:	
 			break;
 		case SYS_CLOSE:
 			sys_close ((int) f->R.rdi);
@@ -189,10 +192,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 // 	power_off();
 // }
 
-// int 
-// wait (pid_t pid){
-// 	return ;
-// }
+int 
+sys_wait (pid_t pid){
+	return process_wait(pid);
+}
 
 // int read(int fd, void *buffer, unsigned size){
 
