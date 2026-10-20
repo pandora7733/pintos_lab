@@ -73,6 +73,7 @@ process_create_initd (const char *file_name) {
 	return tid;
 }
 
+// open하고 NULL값 찾아서 값 넣고 index 반환
 int
 fd_alloc(struct file *file) {
 	struct thread *curr = thread_current(); // <- 현재의 쓰레드
@@ -86,6 +87,15 @@ fd_alloc(struct file *file) {
 		}
 	}
 	return -1;
+}
+
+// 반환된 index값으로 부터 포인터를 찾고 그걸 반환
+struct file *
+fd_get(int fd) {
+	if(fd<2 || fd>=FD_MAX) {
+		return NULL;
+	}
+	return thread_current()->fd_table[fd];
 }
 
 /* A thread function that launches first user process. */
