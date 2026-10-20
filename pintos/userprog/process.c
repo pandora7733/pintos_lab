@@ -73,6 +73,21 @@ process_create_initd (const char *file_name) {
 	return tid;
 }
 
+int
+fd_alloc(struct file *file) {
+	struct thread *curr = thread_current(); // <- 현재의 쓰레드
+	struct file **fdt = curr->fd_table;
+
+	for(int fd = curr->next_fd; fd < FD_MAX; fd++) {
+		if(fdt[fd] == NULL) {
+			fdt[fd] = file;
+			curr->next_fd = fd + 1;
+			return fd;
+		}
+	}
+	return -1;
+}
+
 /* A thread function that launches first user process. */
 static void
 initd (void *f_name) {
