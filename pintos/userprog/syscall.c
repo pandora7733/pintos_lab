@@ -21,11 +21,19 @@ static int fd_alloc (struct file *f UNUSED) { return -1; }
 static struct file *fd_get (int fd UNUSED) { return NULL; }
 static void fd_close (int fd UNUSED) { }
 
-int sys_write(int fd, const void *buffer, unsigned size);
-int sys_open(const char *file);
-int sys_read(int fd, void *buffer, unsigned size);
-void sys_exit(int status);
-void sys_close (int fd);
+void sys_exit(int status); // 일부 구현
+// pid_t fork (const char *thread_name); // 미구연
+int exec (const char *file); // 미구현
+// int wait (pid_t pid); // 미구현
+bool create (const char *file, unsigned initial_size); // 미구현
+bool remove (const char *file); // 미구현
+int sys_open(const char *file); // 구현/테스트X
+int filesize (int fd); // 미구현
+int sys_read(int fd, void *buffer, unsigned size); // 구현/테스트X
+int sys_write(int fd, const void *buffer, unsigned size); // 구현/테스트X
+void seek (int fd, unsigned position); // 미구현
+unsigned tell (int fd); // 미구현
+void sys_close (int fd); // 구현/테스트X
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -63,6 +71,21 @@ static void
 check_address(const void *ptr){
 	if(ptr == NULL || !is_user_vaddr(ptr) || !pml4_get_page(thread_current()->pml4, ptr)){
 		sys_exit(-1);
+	}
+}
+
+static void
+check_buffer(const void *buf, unsigned size){
+	if (size == 0){
+		return;
+	}
+
+	const uint8_t *start = buf; // 버퍼의 시작
+	const uint8_t *end = start + size - 1; //주소의 끝
+
+	// 주소의 끝까지 페이지를 이동하면서 구경
+	for(const uint8_t *page = pg_round_down(start); page <= end; page += PGSIZE){
+		check_address(page);
 	}
 }
 
@@ -107,7 +130,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_EXEC:
 			break;
-		case SYS_WAIT: // 민구
+		case SYS_WAIT:
 			break;
 		case SYS_CREATE:
 			break;
@@ -218,7 +241,7 @@ sys_open(const char *file_name){
 
 int 
 sys_read(int fd, void *buffer, unsigned size){
-	check_address(buffer); // 버퍼가 정상인지 검사
+	check_buffer(buffer, size); // 버퍼가 정상인지 검사
 	int result = -1;
 
 	// 키보드
@@ -250,7 +273,7 @@ sys_read(int fd, void *buffer, unsigned size){
 int 
 sys_write (int fd, const void *buffer, unsigned size){
 	int result = -1;
-	check_address(buffer);
+	check_buffer(buffer, size);
 
 	if(fd == 0){ // 사용 불가
 		return -1;
