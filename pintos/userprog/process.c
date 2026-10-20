@@ -29,7 +29,7 @@ static void initd (void *f_name);
 static void __do_fork (void *);
 static void argument_stack (char **argv, int argc, struct intr_frame *if_);
 char* arg_pashing(char *s, char **save_ptr);
-
+struct thread *find_child(struct thread *parent, tid_t child_tid);
 
 /* General process initializer for initd and other process. */
 static void
@@ -58,6 +58,7 @@ process_create_initd (const char *file_name) {
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (arg_pashing(file_name, &file_name_ptr), PRI_DEFAULT, initd, fn_copy);
 	
+
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
@@ -205,19 +206,58 @@ process_exec (void *f_name) {
  *
  * This function will be implemented in problem 2-2.  For now, it
  * does nothing. */
+
+/* 자식 찾기 프로젝트 */
+struct thread
+*find_child(struct thread *parent, tid_t child_tid){
+	struct list_elem *e;
+	struct thread *child;
+
+	if (!list_empty(&parent->child_list)){   // 리스트가 비어있는지 확인.
+		
+		e = list_front(&parent->child_list); // 맨 앞의 리스트 한개를 가져온다. 
+		
+		// 리스트 마지막까지 검사해서 인자로 받은 tid와 일치하는 자식 프로세스를 찾는다.
+		while(e != list_end(&parent->child_list)){ 
+			child = list_entry(e,struct thread,child_elem);
+
+			if(child->tid == child_tid){
+				// thread*로 리턴
+				return child; 		
+			}
+
+			e = list_next(e);
+		}
+	}
+
+	return NULL; // 찾지 못했거나 리스트가 비어있으면 NULL반환
+}
+
 int
 process_wait (tid_t child_tid UNUSED) {
-	/* XXX: Hint) The pintos exit if process_` (initd), we recommend you
-	 * XXX:       to add infinite loop here before
-	 * XXX:       implementing the process_wait. */
-	timer_sleep(500);
-	return -1;
+	struct thread *parent = thread_current();			 // 부모 프로세스라고 가정하고 진행
+	struct thread *child = find_child(parent,child_tid); // 자식 프로세스를 찾고 child에 할당
+	int child_status; 									 // 자식 프로세스의 종료숫자를 저장할 int 선언
+	
+	if(child == NULL){	// 리스트에서 찾지 못하면 -1을 리턴
+		return -1;
+	}
+
+	sema_down(&child->parent_sema);    // 자식 구조체의 세마를 이용해서 parent_sema 즉 현재 부모 프로세스를 잠재운다.
+
+	child_status = child->exit_status; // 자식의 exit_status를 저장한다.
+	list_remove(&child->child_elem);   // 부모의 child 리스트에서 remove으로 삭제한다.
+	
+	sema_up(&child->child_sema);       // 자식을 깨워서 진행시킨다.
+	
+	
+	return child_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
-	struct thread *curr = thread_current ();
+	struct thread *curr = thread_current (); // 자식 프로세스라고 가정하고 진행
 	/* TODO: Your code goes here.
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
@@ -226,6 +266,22 @@ process_exit (void) {
 	// 유저 프로세스(pml4 있음)만 종료 메시지 출력, 커널 스레드는 출력 안 함
 	if(curr->pml4 != NULL){
 		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+	}
+	
+	sema_up(&curr->parent_sema);  // 부모 프로세스를 깨운다.
+	
+	sema_down(&curr->child_sema); // 자식 즉 본인을 잠재운다.
+	
+	/* child_list가 안비었을 경우 list_front()를 통해 맨앞을 받은 뒤 마지막까지 반복해서 child_list를 전부 깨운다.
+	   즉 부모 프로세스가 죽는다는 가정하에 실행 */
+	if(!list_empty(&curr->child_list)){	 
+		struct list_elem *childs = list_front(&curr->child_list);
+		struct list_elem *e;
+		while(childs != list_end(&curr->child_list)){
+			e = list_next(childs); // 세마 업을 진행하면 실행 후 사라질 수 도 있기 때문에 미리 next값을 저장하고 진행
+			sema_up(&list_entry(childs,struct thread, child_elem)->child_sema); 
+			childs = e;
+		}
 	}
 	process_cleanup ();
 }
