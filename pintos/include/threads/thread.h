@@ -143,7 +143,12 @@ struct thread {
 	
 	struct semaphore child_sema;
 	/* 자식 세마포어 선언*/
-
+	
+	struct semaphore fork_sema;
+	/* 포크 세마포어 선언*/
+	
+	struct intr_frame *fork_intr;
+	// 포크를 위해 if를 부모 스레드에 저장하고 자식이 꺼내씀
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

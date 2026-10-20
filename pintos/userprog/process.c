@@ -78,7 +78,7 @@ process_create_initd (const char *file_name) {
 int
 fd_alloc(struct file *file) {
 	struct thread *curr = thread_current(); // <- 현재의 쓰레드
-	struct file **fdt = curr->fd_table;
+	struct file **fdt = &curr->fd_table;
 
 	for(int fd = curr->next_fd; fd < FD_MAX; fd++) {
 		if(fdt[fd] == NULL) {
@@ -112,7 +112,7 @@ fd_close (int fd) {
 	curr->fd_table[fd] = NULL;
 	file_close (file);
 
-	if (fd < cur->next_fd) {
+	if (fd < curr->next_fd) {
 		curr->next_fd = fd;
 	}
 }
@@ -137,9 +137,21 @@ initd (void *f_name) {
  * TID_ERROR if the thread cannot be created. */
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
+	struct thread *cur = thread_current();
+	cur->fork_intr = if_; // 성공 실패 여부를 둘다 판단함
+
 	/* Clone current thread to new thread.*/
-	return thread_create (name,
-			PRI_DEFAULT, __do_fork, thread_current ());
+	tid_t fork_t = thread_create(name, PRI_DEFAULT, __do_fork, cur);
+	if(fork_t == TID_ERROR){ // thread_creat 판단
+		return TID_ERROR;
+	}
+
+	sema_down(&cur->fork_sema);
+	if (cur->fork_intr == NULL){ // fork 성공 여부 판단
+		return TID_ERROR;
+	}
+
+	return fork_t;
 }
 
 #ifndef VM
@@ -152,25 +164,43 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	void *parent_page;
 	void *newpage;
 	bool writable;
-
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
 
+	if (is_kernel_vaddr(va)){
+		return true;
+	}
+	
 	/* 2. Resolve VA from the parent's page map level 4. */
 	parent_page = pml4_get_page (parent->pml4, va);
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
-
+	newpage = (uint8_t *) palloc_get_page(PAL_USER);
+	if (newpage == NULL){
+		return false;
+	}
+	
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
 
+	uint8_t *new_p = newpage;
+	uint8_t *parent_p = parent_page;
+	for (unsigned i = 0; i < PGSIZE; i++){
+		new_p[i] = parent_p[i];
+	}
+
 	/* 5. Add new page to child's page table at address VA with WRITABLE
 	 *    permission. */
+	writable = true;
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
-		/* 6. TODO: if fail to insert page, do error handling. */
+		
+		palloc_free_page(newpage);
+		return false;
 	}
+
 	return true;
+	
 }
 #endif
 
@@ -184,7 +214,7 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-	struct intr_frame *parent_if;
+	struct intr_frame *parent_if = parent->fork_intr;
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
@@ -216,9 +246,13 @@ __do_fork (void *aux) {
 	}
 
 	/* Finally, switch to the newly created process. */
-	if (succ)
+	if (succ){
+		sema_up(&parent->fork_sema);
 		do_iret (&if_);
+	}
 error:
+	parent->fork_intr = NULL; // 실패 여부를 판단할 수 있도록 NULL로 리턴
+	sema_up(&parent->fork_sema);
 	thread_exit ();
 }
 

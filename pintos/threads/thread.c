@@ -686,6 +686,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	
 	sema_init(&t->parent_sema,0); // 부모의 세마포어 초기화
 	sema_init(&t->child_sema,0);  // 자식의 세마포어 초기화 
+	sema_init (&t->fork_sema,0); // 포크의 세마포어 초기화
 	list_init (&t->donors_list);  // 나에게 기부한 스레드 목록 
 	list_init (&t->child_list);   // 자식 스레드 목록!
 

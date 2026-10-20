@@ -14,6 +14,7 @@
 #include "filesys/file.h"      // file_read, file_write, file_close
 #include "devices/input.h"     // input_getc
 
+typedef int pid_t;
 struct lock file_lock;
 
 /* TEMP: 팀원 fd 테이블 머지 전 임시 스텁 — 머지 시 삭제 */
@@ -22,7 +23,7 @@ static struct file *fd_get (int fd UNUSED) { return NULL; }
 static void fd_close (int fd UNUSED) { }
 
 void sys_exit(int status); // 일부 구현
-// pid_t fork (const char *thread_name); // 미구연
+// pid_t fork (const char *thread_name, struct intr_frame *f); // 미구연
 int exec (const char *file); // 미구현
 // int wait (pid_t pid); // 미구현
 bool create (const char *file, unsigned initial_size); // 미구현
@@ -127,6 +128,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			sys_exit((int) f->R.rdi); // 종료 호출
 			break;
 		case SYS_FORK:
+			f->R.rax = sys_fork((const char *)f->R.rdi, f);
 			break;
 		case SYS_EXEC:
 			break;
@@ -205,6 +207,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 // 	return file_read(fd, buffer, size);
 // }
+
+pid_t 
+fork (const char *thread_name, struct intr_frame *f){
+	check_address(thread_name);
+	return process_fork(thread_name, f);
+}
 
 int 
 sys_open(const char *file_name){ 
