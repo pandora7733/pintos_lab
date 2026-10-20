@@ -98,6 +98,24 @@ fd_get(int fd) {
 	return thread_current()->fd_table[fd];
 }
 
+// index 값을 NBULL값으로 변환
+void
+fd_close (int fd) {
+	struct thread *curr = thread_current();
+	struct file *file = fd_get(fd);
+
+	if (file == NULL) {
+		return ;
+	}
+
+	curr->fd_table[fd] = NULL;
+	file_close (file);
+
+	if (fd < cur->next_fd) {
+		curr->next_fd = fd;
+	}
+}
+
 /* A thread function that launches first user process. */
 static void
 initd (void *f_name) {
