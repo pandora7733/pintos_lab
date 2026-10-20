@@ -213,33 +213,42 @@ struct thread
 	struct list_elem *e;
 	struct thread *child;
 
-	if (!list_empty(&parent->child_list)){
-		e = list_front(&parent->child_list);
-		while(e != list_end(&parent->child_list)){
+	if (!list_empty(&parent->child_list)){   // 리스트가 비어있는지 확인.
+		
+		e = list_front(&parent->child_list); // 맨 앞의 리스트 한개를 가져온다. 
+		
+		// 리스트 마지막까지 검사해서 인자로 받은 tid와 일치하는 자식 프로세스를 찾는다.
+		while(e != list_end(&parent->child_list)){ 
 			child = list_entry(e,struct thread,child_elem);
+
 			if(child->tid == child_tid){
-				return child;
+				// thread*로 리턴
+				return child; 		
 			}
+
 			e = list_next(e);
 		}
 	}
-	return NULL;
+
+	return NULL; // 찾지 못했거나 리스트가 비어있으면 NULL반환
 }
 
 int
 process_wait (tid_t child_tid UNUSED) {
-	struct thread *parent = thread_current(); // 부모 프로세스
-	struct thread *child = find_child(parent,child_tid);
-	int child_status;
-	if(child == NULL){
+	struct thread *parent = thread_current();			 // 부모 프로세스라고 가정하고 진행
+	struct thread *child = find_child(parent,child_tid); // 자식 프로세스를 찾고 child에 할당
+	int child_status; 									 // 자식 프로세스의 종료숫자를 저장할 int 선언
+	
+	if(child == NULL){	// 리스트에서 찾지 못하면 -1을 리턴
 		return -1;
 	}
-	sema_down(&child->parent_sema);
 
-	child_status = child->exit_status;
-	list_remove(&child->child_elem);
+	sema_down(&child->parent_sema);    // 자식 구조체의 세마를 이용해서 parent_sema 즉 현재 부모 프로세스를 잠재운다.
+
+	child_status = child->exit_status; // 자식의 exit_status를 저장한다.
+	list_remove(&child->child_elem);   // 부모의 child 리스트에서 remove으로 삭제한다.
 	
-	sema_up(&child->child_sema);
+	sema_up(&child->child_sema);       // 자식을 깨워서 진행시킨다.
 	
 	
 	return child_status;
@@ -248,7 +257,7 @@ process_wait (tid_t child_tid UNUSED) {
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
-	struct thread *curr = thread_current (); // 자식 프로세스
+	struct thread *curr = thread_current (); // 자식 프로세스라고 가정하고 진행
 	/* TODO: Your code goes here.
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
@@ -259,16 +268,18 @@ process_exit (void) {
 		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
 	}
 	
-	sema_up(&curr->parent_sema);
+	sema_up(&curr->parent_sema);  // 부모 프로세스를 깨운다.
 	
-	sema_down(&curr->child_sema);
+	sema_down(&curr->child_sema); // 자식 즉 본인을 잠재운다.
 	
-	if(!list_empty(&curr->child_list)){	
+	/* child_list가 안비었을 경우 list_front()를 통해 맨앞을 받은 뒤 마지막까지 반복해서 child_list를 전부 깨운다.
+	   즉 부모 프로세스가 죽는다는 가정하에 실행 */
+	if(!list_empty(&curr->child_list)){	 
 		struct list_elem *childs = list_front(&curr->child_list);
 		struct list_elem *e;
 		while(childs != list_end(&curr->child_list)){
-			e = list_next(childs);
-			sema_up(&list_entry(childs,struct thread, child_elem)->child_sema);
+			e = list_next(childs); // 세마 업을 진행하면 실행 후 사라질 수 도 있기 때문에 미리 next값을 저장하고 진행
+			sema_up(&list_entry(childs,struct thread, child_elem)->child_sema); 
 			childs = e;
 		}
 	}
