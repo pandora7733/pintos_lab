@@ -32,9 +32,19 @@ char* arg_pashing(char *s, char **save_ptr);
 struct thread *find_child(struct thread *parent, tid_t child_tid);
 
 /* General process initializer for initd and other process. */
-static void
+static bool // <- 메모리 부족을 감지하기 위해서 반환값을 bool로 변환
 process_init (void) {
 	struct thread *current = thread_current ();
+
+	// fd를 초기화
+	// palloc_get_page -> 커널 메모리를 페이지 단위로 받음
+	current->fd_table = palloc_get_page(PAL_ZERO); // 테이블 생성 + 모든 칸 NULL
+	if (current->fd_table == NULL) {
+		return false;
+	}
+	
+	current->next_fd = 2; // 0, 1은 다른 애들이 차지, 2부터 배정 시작 (3 부터도 가능)
+	return true;
 }
 
 /* Starts the first userland program, called "initd", loaded from FILE_NAME.
@@ -64,6 +74,49 @@ process_create_initd (const char *file_name) {
 	return tid;
 }
 
+// open하고 NULL값 찾아서 값 넣고 index 반환
+int
+fd_alloc(struct file *file) {
+	struct thread *curr = thread_current(); // <- 현재의 쓰레드
+	struct file **fdt = curr->fd_table;
+
+	for(int fd = curr->next_fd; fd < FD_MAX; fd++) {
+		if(fdt[fd] == NULL) {
+			fdt[fd] = file;
+			curr->next_fd = fd + 1;
+			return fd;
+		}
+	}
+	return -1;
+}
+
+// 반환된 index값으로 부터 포인터를 찾고 그걸 반환
+struct file *
+fd_get(int fd) {
+	if(fd<2 || fd>=FD_MAX) {
+		return NULL;
+	}
+	return thread_current()->fd_table[fd];
+}
+
+// index 값을 NBULL값으로 변환
+void
+fd_close (int fd) {
+	struct thread *curr = thread_current();
+	struct file *file = fd_get(fd);
+
+	if (file == NULL) {
+		return ;
+	}
+
+	curr->fd_table[fd] = NULL;
+	file_close (file);
+
+	if (fd < cur->next_fd) {
+		curr->next_fd = fd;
+	}
+}
+
 /* A thread function that launches first user process. */
 static void
 initd (void *f_name) {
@@ -71,7 +124,9 @@ initd (void *f_name) {
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
-	process_init ();
+	if (!process_init ()) {
+		PANIC("initd의 초기화를 실패 해버렸습니다.\n"); // 메모리가 부족해서 할당에 실패하면 fd_table이 NULL인 채로 프로세스가 실행되는 문제가 발생!!
+	}
 
 	if (process_exec (f_name) < 0)
 		PANIC("Fail to launch initd\n");
@@ -156,7 +211,9 @@ __do_fork (void *aux) {
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
 
-	process_init ();
+	if (!process_init ()) {
+		goto error; // 메모리가 부족해서 할당에 실패하면 fd_table이 NULL인 채로 프로세스가 실행되는 문제가 발생!!
+	}
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
