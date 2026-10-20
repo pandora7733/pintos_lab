@@ -29,7 +29,7 @@ static void initd (void *f_name);
 static void __do_fork (void *);
 static void argument_stack (char **argv, int argc, struct intr_frame *if_);
 char* arg_pashing(char *s, char **save_ptr);
-
+struct thread *find_child(struct thread *parent, tid_t child_tid);
 
 /* General process initializer for initd and other process. */
 static void
@@ -230,40 +230,47 @@ int
 process_wait (tid_t child_tid UNUSED) {
 	struct thread *parent = thread_current(); // 부모 프로세스
 	struct thread *child = find_child(parent,child_tid);
+	int child_status;
 	if(child == NULL){
 		return -1;
 	}
+	sema_down(&child->parent_sema);
+
+	child_status = child->exit_status;
+	list_remove(&child->child_elem);
 	
-	sema_down(&parent->process_sema);
-	while(NULL != find_child(parent,child_tid)){
-		sema_down(&parent->process_sema);
-	}
+	sema_up(&child->child_sema);
 	
-	return child->exit_status;
+	
+	return child_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
 	struct thread *curr = thread_current (); // 자식 프로세스
-	struct thread *parent = thread_current ()->parent_process;
-	struct thread *child;
-
-
 	/* TODO: Your code goes here.
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 	
-	// sema_up 구현
-	
 	// 유저 프로세스(pml4 있음)만 종료 메시지 출력, 커널 스레드는 출력 안 함
 	if(curr->pml4 != NULL){
 		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
 	}
-	if(parent != NULL && (child = find_child(parent,curr->tid)) != NULL){
-		list_remove(&child->child_elem);
-		sema_up(&parent->process_sema);
+	
+	sema_up(&curr->parent_sema);
+	
+	sema_down(&curr->child_sema);
+	
+	if(!list_empty(&curr->child_list)){	
+		struct list_elem *childs = list_front(&curr->child_list);
+		struct list_elem *e;
+		while(childs != list_end(&curr->child_list)){
+			e = list_next(childs);
+			sema_up(&list_entry(childs,struct thread, child_elem)->child_sema);
+			childs = e;
+		}
 	}
 	process_cleanup ();
 }

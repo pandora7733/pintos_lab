@@ -135,8 +135,11 @@ struct thread {
 	struct list child_list;
 	/* child 리스트 선언*/
 
-	struct semaphore process_sema;
-	/* 세마포어 선언*/
+	struct semaphore parent_sema;
+	/* 부모 세마포어 선언*/
+	
+	struct semaphore child_sema;
+	/* 자식 세마포어 선언*/
 
 
 #ifdef USERPROG

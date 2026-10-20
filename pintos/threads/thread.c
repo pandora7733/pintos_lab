@@ -310,7 +310,7 @@ thread_create (const char *name, int priority,
 	t->tf.ss = SEL_KDSEG;
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
-	
+
 	t->parent_process = thread_current(); // 현재 스레드(부모)를 넣어준다.
 	list_push_back(&thread_current()->child_list,&t->child_elem); // 부모안에 child_list에 t->child_elem을 넣어준다.
 
@@ -684,9 +684,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->waiting_lock = NULL; // 처음에 기다리는 lock이 없어서
 	t->parent_process = NULL; // 부모 프로세스 NULL로 초기화
 	
-	sema_init(&t->process_sema,0); // 자신의 세마포어 초기화
-	list_init (&t->donors_list); // 나에게 기부한 스레드 목록 
-	list_init (&t->child_list); // 자식 스레드 목록!
+	sema_init(&t->parent_sema,0); // 부모의 세마포어 초기화
+	sema_init(&t->child_sema,0);  // 자식의 세마포어 초기화 
+	list_init (&t->donors_list);  // 나에게 기부한 스레드 목록 
+	list_init (&t->child_list);   // 자식 스레드 목록!
 
 
 	enum intr_level old_level = intr_disable();
