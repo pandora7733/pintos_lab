@@ -112,7 +112,7 @@ fd_close (int fd) {
 	curr->fd_table[fd] = NULL;
 	file_close (file);
 
-	if (fd < cur->next_fd) {
+	if (fd < curr->next_fd) {
 		curr->next_fd = fd;
 	}
 }
