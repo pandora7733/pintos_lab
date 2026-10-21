@@ -8,6 +8,7 @@
 #include <string.h>
 #include "userprog/gdt.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -219,7 +220,7 @@ __do_fork (void *aux) {
 
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
-	if_.R.rax = 0;
+	if_.R.rax = 0; // 자식의 fork 반환값은 0
 
 	/* 2. Duplicate PT */
 	current->pml4 = pml4_create();
@@ -244,6 +245,17 @@ __do_fork (void *aux) {
 
 	if (!process_init ()) {
 		goto error; // 메모리가 부족해서 할당에 실패하면 fd_table이 NULL인 채로 프로세스가 실행되는 문제가 발생!!
+	}
+
+	for (int i = 2; i < FD_MAX; i++){
+		struct file *f = parent->fd_table[i];
+		if(f==NULL){
+			continue;
+		}
+
+		// lock_acquire(&file_lock);
+		// struct *file *running = file_duplicate(f);
+		// lock_release(&file_lock);
 	}
 
 	/* Finally, switch to the newly created process. */
