@@ -79,7 +79,7 @@ process_create_initd (const char *file_name) {
 int
 fd_alloc(struct file *file) {
 	struct thread *curr = thread_current(); // <- 현재의 쓰레드
-	struct file **fdt = &curr->fd_table;
+	struct file **fdt = curr->fd_table;
 
 	for(int fd = curr->next_fd; fd < FD_MAX; fd++) {
 		if(fdt[fd] == NULL) {
@@ -253,9 +253,15 @@ __do_fork (void *aux) {
 			continue;
 		}
 
-		// lock_acquire(&file_lock);
-		// struct *file *running = file_duplicate(f);
-		// lock_release(&file_lock);
+		lock_acquire(&file_lock);
+		struct file *file_running = file_duplicate(f);
+		lock_release(&file_lock);
+
+		if(file_running == NULL){
+			goto error;
+		}
+
+		current->fd_table[i] = file_running;
 	}
 
 	/* Finally, switch to the newly created process. */

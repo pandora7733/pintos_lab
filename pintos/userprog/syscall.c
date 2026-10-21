@@ -20,7 +20,7 @@ struct lock file_lock;
 
 
 void sys_exit(int status); // 일부 구현
-// pid_t fork (const char *thread_name, struct intr_frame *f); // 미구연
+pid_t sys_fork (const char *thread_name, struct intr_frame *f); // 미구연
 int exec (const char *file); // 미구현
 int sys_wait (pid_t pid); // 민성 ^&^
 bool create (const char *file, unsigned initial_size); // 구현/테스트x
@@ -253,7 +253,7 @@ sys_wait (pid_t pid){
 }
 
 pid_t 
-fork (const char *thread_name, struct intr_frame *f){
+sys_fork (const char *thread_name, struct intr_frame *f){
 	check_address(thread_name);
 	return process_fork(thread_name, f);
 }
