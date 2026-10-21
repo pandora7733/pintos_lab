@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -27,6 +28,9 @@ typedef int tid_t;
 #define PRI_MIN 0                       /* Lowest priority. */
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
+
+struct file; // filesys 헤더를 가져오지 않도록 하기 위함
+#define FD_MAX 128 // 프로세스당 fd 최대 개수 (0, 1 예약 → 2~127)
 
 /* A kernel thread or user process.
  *
@@ -96,6 +100,8 @@ struct thread {
 
 	int original_priority;					/*내가 원체 create에서 받은 우선순위가 아니라 양도 받은 놈 */
 
+	int exit_status; //종료 상태
+
 	int64_t wake_ticks;					/*wake tick*/
 
 	struct lock *waiting_lock;					/*지금 기다리고 있는 락 위치*/
@@ -123,11 +129,35 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 	
+	struct thread *parent_process;
+	/* 부모 프로세스를 파악 할 수 있도록 포인터 생성*/
 
+	struct list_elem child_elem;
+	/* child_elem 리스트를 위해 선언*/
+
+	struct list child_list;
+	/* child 리스트 선언*/
+
+	struct semaphore parent_sema;
+	/* 부모 세마포어 선언*/
+	
+	struct semaphore child_sema;
+	/* 자식 세마포어 선언*/
+	
+	struct semaphore fork_sema;
+	/* 포크 세마포어 선언*/
+	
+	struct intr_frame *fork_intr;
+	// 포크를 위해 if를 부모 스레드에 저장하고 자식이 꺼내씀
+
+	struct file *running_file;
+	// 현재 실행중인 파일
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
+	struct file **fd_table; // fd -> 열린 파일
+	int next_fd; // 다음에 배정할 fd 번호
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
