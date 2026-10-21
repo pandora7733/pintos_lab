@@ -18,13 +18,9 @@
 typedef int pid_t;
 struct lock file_lock;
 
-// /* TEMP: 팀원 fd 테이블 머지 전 임시 스텁 — 머지 시 삭제 */
-// static int fd_alloc (struct file *f UNUSED) { return -1; }
-// static struct file *fd_get (int fd UNUSED) { return NULL; }
-// static void fd_close (int fd UNUSED) { }
 
 void sys_exit(int status); // 일부 구현
-// pid_t fork (const char *thread_name); // 미구연
+pid_t sys_fork (const char *thread_name, struct intr_frame *f); // 미구연
 int exec (const char *file); // 미구현
 int sys_wait (pid_t pid); // 민성 ^&^
 bool create (const char *file, unsigned initial_size); // 구현/테스트x
@@ -129,6 +125,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			sys_exit((int) f->R.rdi); // 종료 호출
 			break;
 		case SYS_FORK:
+			f->R.rax = sys_fork((const char *)f->R.rdi, f);
 			break;
 		case SYS_EXEC:
 			break;
@@ -253,6 +250,12 @@ remove(const char *file){
 int 
 sys_wait (pid_t pid){
 	return process_wait(pid);
+}
+
+pid_t 
+sys_fork (const char *thread_name, struct intr_frame *f){
+	check_address(thread_name);
+	return process_fork(thread_name, f);
 }
 
 int 
