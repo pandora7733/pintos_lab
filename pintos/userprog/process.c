@@ -393,6 +393,27 @@ process_exit (void) {
 		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
 	}
 	
+	// 현재 스레드의 진행 파일을 close 해줘야 함
+	if (curr->running_file != NULL){
+		lock_acquire(&file_lock);
+		file_close(curr->running_file);
+		lock_release(&file_lock);
+		curr->running_file = NULL;
+	}
+
+	if (curr->fd_table != NULL){
+		lock_acquire(&file_lock);
+		for (int i = 2; i < FD_MAX; i++){
+			if (curr->fd_table[i] != NULL){
+				file_close(curr->fd_table[i]);
+				curr->fd_table[i] = NULL;
+			}
+		}
+		lock_release(&file_lock);
+		palloc_free_page(curr->fd_table);
+		curr->fd_table = NULL;
+	}
+
 	sema_up(&curr->parent_sema);  // 부모 프로세스를 깨운다.
 	
 	sema_down(&curr->child_sema); // 자식 즉 본인을 잠재운다.
@@ -628,6 +649,10 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	// 실행 중인 파일을 붙잡기 - 프로세스가 끝날 때까지 이 파일에 쓰기 금지
 	lock_acquire(&file_lock);
+	// 기존 파일을 지워줘야 함
+	if (t->running_file != NULL){
+		file_close(t->running_file);
+	}
 	file_deny_write(file); // inode의 쓰기 금지 횟수 +1 (0이 될 때까지 write는 0바이트)
 	t->running_file = file;
 	lock_release(&file_lock);
