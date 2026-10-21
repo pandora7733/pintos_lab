@@ -16,13 +16,14 @@
 #include "devices/input.h"     // input_getc
 #include "userprog/process.h"
 #include "threads/palloc.h"
+#include "threads/init.h" 
 
 typedef int pid_t;
 struct lock file_lock;
 
 
 void sys_exit(int status); // 일부 구현
-// pid_t fork (const char *thread_name); // 미구연
+pid_t sys_fork (const char *thread_name, struct intr_frame *f); 
 int sys_exec (const char *file);
 int sys_wait (pid_t pid); // 민성 ^&^
 bool create (const char *file, unsigned initial_size); // 구현/테스트x
@@ -132,7 +133,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 	switch(f->R.rax){
 		case SYS_HALT: // 민구
-			//halt();
+			power_off ();
 			break;
 		case SYS_EXIT:
 			sys_exit((int) f->R.rdi); // 종료 호출
