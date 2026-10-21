@@ -150,6 +150,9 @@ struct thread {
 	struct intr_frame *fork_intr;
 	// 포크를 위해 if를 부모 스레드에 저장하고 자식이 꺼내씀
 
+	struct file *running_file;
+	// 현재 실행중인 파일
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */

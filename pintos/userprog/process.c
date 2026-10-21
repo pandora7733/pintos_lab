@@ -195,7 +195,6 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	 *    permission. */
 	writable = is_writable(pte);
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
-		
 		palloc_free_page(newpage);
 		return false;
 	}
@@ -247,6 +246,8 @@ __do_fork (void *aux) {
 		goto error; // 메모리가 부족해서 할당에 실패하면 fd_table이 NULL인 채로 프로세스가 실행되는 문제가 발생!!
 	}
 
+	// 부모의 테이블을 자식으로 값을 복사해서 옮김
+	// 주소를 그대로 옮기면 안됩니다;;
 	for (int i = 2; i < FD_MAX; i++){
 		struct file *f = parent->fd_table[i];
 		if(f==NULL){
@@ -254,14 +255,28 @@ __do_fork (void *aux) {
 		}
 
 		lock_acquire(&file_lock);
-		struct file *file_running = file_duplicate(f);
+		struct file *file_val = file_duplicate(f);
 		lock_release(&file_lock);
 
-		if(file_running == NULL){
+		if(file_val == NULL){
 			goto error;
 		}
 
-		current->fd_table[i] = file_running;
+		current->fd_table[i] = file_val;
+	}
+
+	// 부모의 진행파일도 옮김
+	if (parent->running_file != NULL){
+		// 주소를 그대로 옮기면 안됩니다;;
+		lock_acquire(&file_lock);
+		struct file *running_f = file_duplicate(parent->running_file);
+		lock_release(&file_lock);
+
+		if (running_f == NULL){
+			goto error;
+		}
+
+		current->running_file = running_f;
 	}
 
 	/* Finally, switch to the newly created process. */
@@ -611,9 +626,23 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	success = true;
 
+	// 실행 중인 파일을 붙잡기 - 프로세스가 끝날 때까지 이 파일에 쓰기 금지
+	lock_acquire(&file_lock);
+	file_deny_write(file); // inode의 쓰기 금지 횟수 +1 (0이 될 때까지 write는 0바이트)
+	t->running_file = file;
+	lock_release(&file_lock);
+
 done:
 	/* We arrive here whether the load is successful or not. */
-	file_close (file);
+
+	// 성공: 실행 파일은 running_file로 보관 중이니 닫지 않음
+	// 실패: 이 프로세스는 실행되지 않으니 열었던 파일을 닫음
+	if (!success) {
+		lock_acquire (&file_lock);
+		file_close (file);
+		lock_release (&file_lock);
+	}
+
 	return success;
 }
 
