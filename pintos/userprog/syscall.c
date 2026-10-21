@@ -1,4 +1,5 @@
 #include "userprog/syscall.h"
+#include <string.h>
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
@@ -14,14 +15,15 @@
 #include "filesys/file.h"      // file_read, file_write, file_close
 #include "devices/input.h"     // input_getc
 #include "userprog/process.h"
+#include "threads/palloc.h"
 
 typedef int pid_t;
 struct lock file_lock;
 
 
 void sys_exit(int status); // 일부 구현
-pid_t sys_fork (const char *thread_name, struct intr_frame *f); // 미구연
-int exec (const char *file); // 미구현
+// pid_t fork (const char *thread_name); // 미구연
+int sys_exec (const char *file);
 int sys_wait (pid_t pid); // 민성 ^&^
 bool create (const char *file, unsigned initial_size); // 구현/테스트x
 bool remove (const char *file); // 구현/테스트x
@@ -87,6 +89,17 @@ check_buffer(const void *buf, unsigned size){
 	}
 }
 
+// 문자열이 걸친 모드 페이지가 유효한지 안한지 확인을 진행 (NULL문자 '\0' 까지)
+static void
+check_string (const char *str) {
+	check_address(str);
+	for (const char *p = str; *p != '\0'; p++) {
+		if (pg_ofs (p+1) == 0) {
+			check_address(p+1);
+		}
+	}
+}
+
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
@@ -128,6 +141,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = sys_fork((const char *)f->R.rdi, f);
 			break;
 		case SYS_EXEC:
+			f->R.rax = sys_exec((const char *) f->R.rdi);
 			break;
 		case SYS_WAIT: // 민성
 			f->R.rax = sys_wait((int) f->R.rdi);
@@ -204,6 +218,24 @@ tell (int fd){
 	return file_tell(file);
 }
 
+int
+sys_exec (const char *file) {
+	check_string(file); // 사용자 문자열 검증
+
+	char *cmd_copy = palloc_get_page (0); // 커널 페이지에 복사
+	if (cmd_copy == NULL) {
+		sys_exit (-1);
+	}
+	strlcpy(cmd_copy, file, PGSIZE);
+
+	if (process_exec (cmd_copy) == -1) { // <- 프로그램을 교체를 성공하면 다시 돌아오지 않음 (구 작업을 영원히 잃어버림)
+		sys_exit(-1);
+	}
+
+	NOT_REACHED(); // <- 커널 작동 중지 PANIC("executed an unreachable statement")과 같음
+}
+
+// int read(int fd, void *buffer, unsigned size){
 void seek (int fd, unsigned position){
 	struct file *file = fd_get(fd);
 	if(file == NULL){ 
