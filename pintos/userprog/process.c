@@ -401,6 +401,19 @@ process_exit (void) {
 		curr->running_file = NULL;
 	}
 
+	if (curr->fd_table != NULL){
+		lock_acquire(&file_lock);
+		for (int i = 2; i < FD_MAX; i++){
+			if (curr->fd_table[i] != NULL){
+				file_close(curr->fd_table[i]);
+				curr->fd_table[i] = NULL;
+			}
+		}
+		lock_release(&file_lock);
+		palloc_free_page(curr->fd_table);
+		curr->fd_table = NULL;
+	}
+
 	sema_up(&curr->parent_sema);  // 부모 프로세스를 깨운다.
 	
 	sema_down(&curr->child_sema); // 자식 즉 본인을 잠재운다.
