@@ -11,5 +11,6 @@ void process_exit (void);
 void process_activate (struct thread *next);
 int fd_alloc (struct file *file);
 struct file *fd_get (int fd);
+void fd_close (int fd);
 
 #endif /* userprog/process.h */

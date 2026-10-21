@@ -13,23 +13,20 @@
 #include "filesys/filesys.h"   // filesys_open
 #include "filesys/file.h"      // file_read, file_write, file_close
 #include "devices/input.h"     // input_getc
+#include "userprog/process.h"
 
 typedef int pid_t;
 struct lock file_lock;
 
-/* TEMP: 팀원 fd 테이블 머지 전 임시 스텁 — 머지 시 삭제 */
-// static int fd_alloc (struct file *f UNUSED) { return -1; }
-// static struct file *fd_get (int fd UNUSED) { return NULL; }
-// static void fd_close (int fd UNUSED) { }
 
 void sys_exit(int status); // 일부 구현
 // pid_t fork (const char *thread_name, struct intr_frame *f); // 미구연
 int exec (const char *file); // 미구현
-// int wait (pid_t pid); // 미구현
-bool create (const char *file, unsigned initial_size); // 미구현
-bool remove (const char *file); // 미구현
+int sys_wait (pid_t pid); // 민성 ^&^
+bool create (const char *file, unsigned initial_size); // 구현/테스트x
+bool remove (const char *file); // 구현/테스트x
 int sys_open(const char *file); // 구현/테스트X
-int filesize (int fd); // 미구현
+int filesize (int fd); // 구현/테스트x
 int sys_read(int fd, void *buffer, unsigned size); // 구현/테스트X
 int sys_write(int fd, const void *buffer, unsigned size); // 구현/테스트X
 void seek (int fd, unsigned position); // 미구현
@@ -132,16 +129,20 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_EXEC:
 			break;
-		case SYS_WAIT:
+		case SYS_WAIT: // 민성
+			f->R.rax = sys_wait((int) f->R.rdi);
 			break;
-		case SYS_CREATE:
+		case SYS_CREATE: // 민성
+			f->R.rax = create((char *) f->R.rdi,(unsigned) f->R.rsi);
 			break;
-		case SYS_REMOVE:
+		case SYS_REMOVE: // 민성
+			f->R.rax = remove((char *) f->R.rdi);
 			break;
 		case SYS_OPEN: // 민구
 			f->R.rax = sys_open((char *) f->R.rdi);
 			break;
-		case SYS_FILESIZE:
+		case SYS_FILESIZE: // 민성
+			f->R.rax = filesize((int) f->R.rdi);
 			break;
 		case SYS_READ: // 민구
 			f->R.rax = sys_read((int) f->R.rdi, (void *) f->R.rsi, (unsigned) f->R.rdx);
@@ -149,9 +150,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_WRITE: // 민구
 			f->R.rax = sys_write ((int) f->R.rdi, (const void *) f->R.rsi, (unsigned) f->R.rdx);
 			break;
-		case SYS_SEEK:
+		case SYS_SEEK: // 민성
+			seek((int) f->R.rdi, (int) f->R.rsi);
 			break;
-		case SYS_TELL:
+		case SYS_TELL: // 민성
+			f->R.rax = tell((int) f->R.rdi);
 			break;
 		case SYS_CLOSE:
 			sys_close ((int) f->R.rdi);
@@ -190,23 +193,64 @@ syscall_handler (struct intr_frame *f UNUSED) {
 // halt(void){
 // 	power_off();
 // }
+unsigned 
+tell (int fd){
+	struct file *file = fd_get(fd);
 
-// int 
-// wait (pid_t pid){
-// 	return ;
-// }
+	if(file == NULL){ 
+		return -1;
+	}
 
-// int read(int fd, void *buffer, unsigned size){
+	return file_tell(file);
+}
 
-// 	// 테스트 코드 (유저 쪽)
-// 	// int fd = open("sample.txt");   // 커널이 3을 돌려줌
-// 	// read(fd, buf, 10);             // 3을 다시 넘김 → 커널은 rdi에서 3을 꺼냄
-// 	// close(fd);
+void seek (int fd, unsigned position){
+	struct file *file = fd_get(fd);
+	if(file == NULL){ 
+		return ;
+	}
+	file_seek(file,position);
+}
 
-// 	// fd는 그냥 f->R.rdi에 들어오는 숫자
+int 
+filesize (int fd){
+	struct file *file = fd_get(fd);
 
-// 	return file_read(fd, buffer, size);
-// }
+	if(file == NULL){ 
+		return -1;
+	}
+
+	return file_length(file);
+} 
+
+bool
+create(const char *file, unsigned initial_size){
+	bool result;
+	check_address(file);
+	lock_acquire(&file_lock);
+	
+	result = filesys_create(file,initial_size);
+	
+	lock_release(&file_lock);
+	return result;
+}
+
+bool
+remove(const char *file){
+	bool result;
+	check_address(file);
+	lock_acquire(&file_lock);
+	
+	result = filesys_remove(file);
+	
+	lock_release(&file_lock);
+	return result;
+}
+
+int 
+sys_wait (pid_t pid){
+	return process_wait(pid);
+}
 
 pid_t 
 fork (const char *thread_name, struct intr_frame *f){
