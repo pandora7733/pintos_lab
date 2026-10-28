@@ -2,6 +2,7 @@
 #define VM_VM_H
 #include <stdbool.h>
 #include "threads/palloc.h"
+#include <hash.h>
 
 enum vm_type {
 	/* page not initialized */
@@ -44,7 +45,8 @@ struct page {
 	const struct page_operations *operations;
 	void *va;              /* Address in terms of user space */
 	struct frame *frame;   /* Back reference for frame */
-
+	bool writable;
+	
 	/* Your implementation */
 
 	/* Per-type data are binded into the union.
@@ -63,7 +65,14 @@ struct page {
 struct frame {
 	void *kva;
 	struct page *page;
+
+	/*
+	01. 물리 메모리 내 사용 가능한 프레임(페이지의 저장 공간)을 추적.
+	02. 프레임 할당 및 해제 기능 구현.
+	03. 프레임 테이블에 동기화(synchronization) 추가.
+	*/
 };
+
 
 /* The function table for page operations.
  * This is one way of implementing "interface" in C.
@@ -85,7 +94,49 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
+	/*
+	[역할]
+	01. 페이지 폴트 시 커널이 추가 페이지 테이블에서 오류가 발생한 가상 페이지를 조회하여 어떤 데이터가 있어야 하는지 확인
+	02. 프로세스가 종료될 때 커널이 SPT를 참조하여 어떤 리소스를 free시킬 것인지 결정
+
+	할당받은 페이지에 대한 정보(unint, anonymouse, file-backed)를 가지고 있음
+	*/
+
+	/* 자료 구조 선택 
+	배열, 리스트, 비트맵, 해시 테이블(내장 함수 제공)
+	*/
+
+	/* 필드 타입 선택
+	- 세그먼트 (연속된 페이지 그룹_실행 파일이나 메모리 매핑 파일이 포함된 메모리 영역) 
+	- 페이지
+	*/
+
+	/* 해시로 구현하는 경우
+	필요한 값: VA, page, hash_elem
+	먼저 SPT에 해시 구조체를 만들어주어야 한다. 
+	SPT 자체는 해시 구조체가 아니기 때문이다.
+	그러면 SPT 내부의 해시 구조체에 들어갈 엔트리도 만들어줘야 한다. 
+	page 구조체 자체에 hash_elem을 추가해서 엔트리로 사용할 수도 있지만, 
+	그렇게 하지 않고 wrapper 엔트리 생성
+	*/
+	struct hash SPT_hash;
+
 };
+
+struct spt_entry {
+	void *va; /* 키 (가상주소) */
+	struct page *page; /* 값 (페이지) */
+	struct hash_elem elem;
+};
+
+struct vm_entry {
+	int VM_BIN;
+	uint32_t zero_bytes;
+	uint32_t read_bytes;
+	off_t offset;
+	struct file file; //이렇게 하면 복사됨. file포인터로 수정?
+};
+
 
 #include "threads/thread.h"
 void supplemental_page_table_init (struct supplemental_page_table *spt);
